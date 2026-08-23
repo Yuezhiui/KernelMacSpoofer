@@ -1,77 +1,86 @@
-# KernelMacSpoofer 🌊
+# KernelMacSpoofer
 
-A high-performance, native Windows MAC address spoofer and automated connection identity rotator built with **WinUI 3** and **.NET 8**.
+A high-performance, native Windows MAC address spoofer and automated connection identity rotator developed with WinUI 3 and .NET 8.
 
-Featuring a sleek dark glassmorphic design inspired by deep blue wave gradients and direct Windows kernel/registry interaction.
-
----
-
-## 📖 Description
-
-**KernelMacSpoofer** is a lightweight, pure C# application designed to randomize and manage network adapter MAC addresses on Windows without relying on external Python scripts or third-party CLI wrappers. Built for developers, privacy researchers, and network engineers, it provides automated interval rotation, instant spoofing, and driver-compliant address generation for both Wi-Fi and Ethernet adapters.
+Features a modern dark glassmorphism interface with deep blue wave gradient styling and direct Windows registry-level network adapter management.
 
 ---
 
-## ✨ Features
+## Overview
 
-- **100% Native Pure C#**: No external Python scripts, third-party CLI tools, or wrappers.
-- **Smart Adapter Detection**: Automatically identifies active Wi-Fi and Ethernet network interfaces.
-- **Standards Compliant**: Generates cryptographically secure, locally administered unicast MAC addresses (`02:XX:XX:...`, `06:XX:XX:...`, `0A:XX:XX:...`, `0E:XX:XX:...`) guaranteed to work with Intel, Realtek, and modern network drivers.
-- **Auto-Rotation**: Configurable automated timer rotation (from 5 seconds up to 24 hours).
-- **Modern UI**: WinUI 3 desktop interface with fluent controls, translucent frosted cards, and deep blue wave gradient background.
-- **Zero Licensing Conflicts**: 100% original codebase ready for open-source distribution under the MIT license.
+KernelMacSpoofer is a lightweight, standalone C# application engineered to randomize and manage network adapter MAC addresses on Windows operating systems without dependencies on external Python scripts, command-line wrappers, or third-party binaries.
+
+The application allows instant single-execution spoofing with safety cooldowns as well as automated interval-based rotation across active Wi-Fi and Ethernet adapters.
 
 ---
 
-## 🚀 Getting Started
+## Features
 
-### Prerequisites
-- Windows 10 (version 1809 / build 17763 or higher) or Windows 11
-- Administrator privileges (required to modify network registry settings and restart network adapters)
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (for building from source)
+- **Native C# Implementation**: Zero external dependencies on Python runtimes or third-party executables.
+- **Intelligent Interface Detection**: Automatically discovers active Wi-Fi and Ethernet network interfaces.
+- **IEEE Standards Compliance**: Generates cryptographically secure, locally administered unicast MAC addresses (`02:XX:XX:...`, `06:XX:XX:...`, `0A:XX:XX:...`, `0E:XX:XX:...`) fully compatible with Intel, Realtek, Qualcomm, and other modern network controller drivers.
+- **Execution Modes**:
+  - **Once**: Immediate MAC randomization with an integrated 5-second cooldown cycle.
+  - **Automated Intervals**: Continuous periodic rotation configurable from 5 seconds up to 24 hours.
+- **Modern User Interface**: Native Windows App SDK / WinUI 3 controls with translucent frosted styling and dark-adapted controls.
+- **Open Source Licensing**: Clean codebase distributed under the permissive MIT License.
 
-### Building from Source
+---
 
+## Prerequisites
+
+- **Operating System**: Windows 10 (version 1809 / build 17763 or higher) or Windows 11
+- **Privileges**: Administrator privileges (required for Windows network registry modification and adapter reset)
+- **Runtime / SDK**: .NET 8.0 SDK (for compilation from source)
+
+---
+
+## Building and Publishing
+
+### Clone the Repository
 ```bash
-# Clone the repository
 git clone https://github.com/Yuezhiui/KernelMacSpoofer.git
 cd KernelMacSpoofer/MacSpoof
+```
 
-# Build x64 release
+### Compile Release Binary
+```bash
 dotnet build MacSpoof.csproj -c Release -p:Platform=x64
+```
 
-# Publish standalone executable
+### Publish Standalone Executable
+```bash
 dotnet publish MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64
 ```
 
-The published executable will be located in:
-`MacSpoof/MacSpoof/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/MacSpoof.exe`
+The compiled standalone executable will be located in:
+`MacSpoof/bin/Release/net8.0-windows10.0.19041.0/win-x64/publish/MacSpoof.exe`
 
 ---
 
-## 🛠️ Project Structure
+## Project Structure
 
 ```
 KernelMacSpoofer/
 ├── MacSpoof/                   # Main WinUI 3 Project
-│   ├── Assets/                 # UI Images and Backgrounds
-│   │   ├── background.png      # Blue Wave Gradient Background
+│   ├── Assets/                 # UI Assets and Graphical Resources
+│   │   ├── background.png      # Deep Blue Wave Gradient Background
 │   │   └── ...
 │   ├── Properties/
-│   │   └── PublishProfiles/    # Deployment profiles
-│   ├── App.xaml / App.xaml.cs  # Application entrypoint
-│   ├── MainWindow.xaml / .cs   # Main user interface
-│   ├── MacSpoofService.cs      # Native C# MAC spoofing & registry engine
-│   ├── app.manifest            # UAC Administrator execution elevation
-│   ├── Package.appxmanifest    # Windows app metadata
-│   └── MacSpoof.csproj         # Project configuration
-├── .gitignore                  # Git ignore rules
-├── LICENSE                     # MIT Open-Source License
-└── README.md                   # Documentation
+│   │   └── PublishProfiles/    # Build and Deployment Profiles
+│   ├── App.xaml / App.xaml.cs  # Application Entry Point
+│   ├── MainWindow.xaml / .cs   # User Interface and Controller Logic
+│   ├── MacSpoofService.cs      # Native C# Windows Registry Spoofing Engine
+│   ├── app.manifest            # UAC Administrator Execution Manifest
+│   ├── Package.appxmanifest    # Windows Application Metadata
+│   └── MacSpoof.csproj         # Project Configuration File
+├── .gitignore                  # Git Ignore Rules
+├── LICENSE                     # MIT License
+└── README.md                   # Project Documentation
 ```
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -34,10 +34,11 @@
                 </StackPanel>
             </Border>
 
-            <!-- Choose Duration -->
+            <!-- Choose Configuration -->
             <StackPanel Spacing="8">
-                <TextBlock Text="CHOOSE HOURS OR MINUTES" FontSize="12" FontWeight="SemiBold" Foreground="#88A4D0"/>
-                <ComboBox x:Name="DurationComboBox" HorizontalAlignment="Stretch" SelectedIndex="0" Background="#380D1A30" BorderBrush="#305A8DD9" CornerRadius="8">
+                <TextBlock Text="CHOOSE CONFIGURATION" FontSize="12" FontWeight="SemiBold" Foreground="#88A4D0"/>
+                <ComboBox x:Name="ConfigurationComboBox" HorizontalAlignment="Stretch" SelectedIndex="0" Background="#380D1A30" BorderBrush="#305A8DD9" CornerRadius="8" SelectionChanged="ConfigurationComboBox_SelectionChanged">
+                    <ComboBoxItem Content="Once" />
                     <ComboBoxItem Content="5 Seconds" />
                     <ComboBoxItem Content="10 Seconds" />
                     <ComboBoxItem Content="30 Seconds" />
@@ -51,28 +52,11 @@
                 </ComboBox>
             </StackPanel>
 
-            <!-- Auto-Rotate -->
-            <Border BorderBrush="#305A8DD9" BorderThickness="1" CornerRadius="12" Padding="16" Background="#380D1A30">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Auto-Rotate" FontWeight="SemiBold" FontSize="16" Foreground="White"/>
-                        <TextBlock Text="Change MAC automatically" Foreground="#88A4D0" FontSize="14"/>
-                    </StackPanel>
-                    
-                    <ToggleSwitch x:Name="AutoRotateSwitch" Grid.Column="1" VerticalAlignment="Center" Margin="0" MinWidth="0" OnContent="" OffContent="" Toggled="AutoRotateSwitch_Toggled"/>
-                </Grid>
-            </Border>
-
-            <!-- Start Button -->
-            <Button x:Name="StartButton" HorizontalAlignment="Stretch" Height="48" CornerRadius="8" Background="#1D63ED" Foreground="White" Click="StartButton_Click">
+            <!-- Action Button -->
+            <Button x:Name="ActionButton" HorizontalAlignment="Stretch" Height="48" CornerRadius="8" Background="#1D63ED" Foreground="White" Click="ActionButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                    <FontIcon x:Name="StartButtonIcon" Glyph="&#xE768;" FontSize="16"/>
-                    <TextBlock x:Name="StartButtonText" Text="START" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                    <FontIcon x:Name="ActionButtonIcon" Glyph="&#xE768;" FontSize="16"/>
+                    <TextBlock x:Name="ActionButtonText" Text="RUN" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 

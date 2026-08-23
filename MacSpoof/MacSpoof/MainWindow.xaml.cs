@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.IO;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 
 namespace MacSpoof
@@ -13,7 +14,12 @@ namespace MacSpoof
     {
         private DispatcherTimer _rotateTimer;
         private DispatcherTimer _pollTimer;
+        private DispatcherTimer _cooldownTimer;
+        private int _cooldownSecondsLeft = 0;
         private bool _isRunning = false;
+
+        private readonly SolidColorBrush _runBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 29, 99, 237));
+        private readonly SolidColorBrush _stopBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 211, 47, 47));
 
         public MainWindow()
         {
@@ -24,6 +30,10 @@ namespace MacSpoof
 
             _rotateTimer = new DispatcherTimer();
             _rotateTimer.Tick += RotateTimer_Tick;
+
+            _cooldownTimer = new DispatcherTimer();
+            _cooldownTimer.Interval = TimeSpan.FromSeconds(1);
+            _cooldownTimer.Tick += CooldownTimer_Tick;
 
             _pollTimer = new DispatcherTimer();
             _pollTimer.Interval = TimeSpan.FromSeconds(2);
@@ -77,13 +87,8 @@ namespace MacSpoof
         {
             try
             {
-                // Use pure native C# MAC spoofer
                 bool success = await MacSpoofService.SpoofActiveAdapterAsync();
-
-                // Wait a moment for network adapter to reinitialize
                 await Task.Delay(2000);
-
-                // Reload the MAC address on UI to reflect changes
                 LoadCurrentMacAddress();
             }
             catch (Exception ex)
@@ -92,31 +97,78 @@ namespace MacSpoof
             }
         }
 
-        private async void StartButton_Click(object sender, RoutedEventArgs e)
+        private async void ActionButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_isRunning)
+            string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString();
+
+            if (string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase))
             {
-                _isRunning = true;
-                StartButtonText.Text = "STOP";
-                StartButtonIcon.Glyph = "\uE71A"; // Stop icon 
-
-                // Perform immediate spoof
-                await RandomizeMacAddressAsync();
-
-                if (AutoRotateSwitch.IsOn)
-                {
-                    string? selectedStr = (DurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString();
-                    _rotateTimer.Interval = ParseDuration(selectedStr);
-                    _rotateTimer.Start();
-                }
+                await ExecuteOnceWithCooldownAsync();
             }
             else
             {
-                _isRunning = false;
-                _rotateTimer.Stop();
-                StartButtonText.Text = "START";
-                StartButtonIcon.Glyph = "\uE768"; // Play icon
+                if (!_isRunning)
+                {
+                    await StartLoopAsync(selectedStr);
+                }
+                else
+                {
+                    StopLoop();
+                }
             }
+        }
+
+        private async Task ExecuteOnceWithCooldownAsync()
+        {
+            ActionButton.IsEnabled = false;
+            ActionButtonText.Text = "SPOOFING...";
+            ActionButtonIcon.Glyph = "\uE895";
+
+            await RandomizeMacAddressAsync();
+
+            _cooldownSecondsLeft = 5;
+            ActionButtonText.Text = $"COOLDOWN ({_cooldownSecondsLeft}s)";
+            ActionButtonIcon.Glyph = "\uE823";
+            _cooldownTimer.Start();
+        }
+
+        private void CooldownTimer_Tick(object? sender, object e)
+        {
+            _cooldownSecondsLeft--;
+            if (_cooldownSecondsLeft > 0)
+            {
+                ActionButtonText.Text = $"COOLDOWN ({_cooldownSecondsLeft}s)";
+            }
+            else
+            {
+                _cooldownTimer.Stop();
+                ActionButton.IsEnabled = true;
+                ActionButtonText.Text = "RUN";
+                ActionButtonIcon.Glyph = "\uE768";
+                ActionButton.Background = _runBrush;
+            }
+        }
+
+        private async Task StartLoopAsync(string? durationStr)
+        {
+            _isRunning = true;
+            ActionButtonText.Text = "STOP";
+            ActionButtonIcon.Glyph = "\uE71A";
+            ActionButton.Background = _stopBrush;
+
+            await RandomizeMacAddressAsync();
+
+            _rotateTimer.Interval = ParseDuration(durationStr);
+            _rotateTimer.Start();
+        }
+
+        private void StopLoop()
+        {
+            _isRunning = false;
+            _rotateTimer.Stop();
+            ActionButtonText.Text = "RUN";
+            ActionButtonIcon.Glyph = "\uE768";
+            ActionButton.Background = _runBrush;
         }
 
         private async void RotateTimer_Tick(object? sender, object e)
@@ -124,19 +176,19 @@ namespace MacSpoof
             await RandomizeMacAddressAsync();
         }
 
-        private void AutoRotateSwitch_Toggled(object sender, RoutedEventArgs e)
+        private void ConfigurationComboBox_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)
         {
+            string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString();
+
             if (_isRunning)
             {
-                if (AutoRotateSwitch.IsOn)
+                if (string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase))
                 {
-                    string? selectedStr = (DurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString();
-                    _rotateTimer.Interval = ParseDuration(selectedStr);
-                    _rotateTimer.Start();
+                    StopLoop();
                 }
                 else
                 {
-                    _rotateTimer.Stop();
+                    _rotateTimer.Interval = ParseDuration(selectedStr);
                 }
             }
         }
