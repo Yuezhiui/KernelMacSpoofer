@@ -17,6 +17,7 @@ namespace MacSpoof
         private DispatcherTimer _cooldownTimer;
         private int _cooldownSecondsLeft = 0;
         private bool _isRunning = false;
+        private TrayIconManager? _trayManager;
 
         private readonly SolidColorBrush _runBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 29, 99, 237));
         private readonly SolidColorBrush _stopBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 211, 47, 47));
@@ -39,6 +40,21 @@ namespace MacSpoof
             _pollTimer.Interval = TimeSpan.FromSeconds(2);
             _pollTimer.Tick += (s, e) => LoadCurrentMacAddress();
             _pollTimer.Start();
+
+            // Initialize System Tray Icon
+            try
+            {
+                _trayManager = new TrayIconManager(this);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to init tray icon: {ex.Message}");
+            }
+
+            this.Closed += (s, e) =>
+            {
+                _trayManager?.Dispose();
+            };
         }
 
         private void LoadBackgroundImage()
@@ -74,13 +90,15 @@ namespace MacSpoof
                 presenter.IsMaximizable = false;
             }
             
-            appWindow.Resize(new Windows.Graphics.SizeInt32(450, 700));
+            // Compact, streamlined widget size
+            appWindow.Resize(new Windows.Graphics.SizeInt32(360, 420));
         }
 
         private void LoadCurrentMacAddress()
         {
             string formattedMac = MacSpoofService.GetCurrentMacAddress();
             CurrentMacTextBlock.Text = $"MAC: {formattedMac}";
+            _trayManager?.UpdateTooltip($"MacSpoof: {formattedMac}");
         }
 
         private async Task RandomizeMacAddressAsync()
@@ -99,10 +117,16 @@ namespace MacSpoof
 
         private async void ActionButton_Click(object sender, RoutedEventArgs e)
         {
-            string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString();
+            if (_cooldownSecondsLeft > 0) return;
 
-            if (string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase))
+            int selectedIndex = ConfigurationComboBox.SelectedIndex;
+            string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString()?.Trim();
+            bool isOnce = selectedIndex == 0 || string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase);
+
+            if (isOnce)
             {
+                _isRunning = false;
+                _rotateTimer.Stop();
                 await ExecuteOnceWithCooldownAsync();
             }
             else
@@ -118,9 +142,19 @@ namespace MacSpoof
             }
         }
 
+        public async void TriggerSpoofOnceFromTray()
+        {
+            if (_cooldownSecondsLeft > 0) return;
+            await ExecuteOnceWithCooldownAsync();
+        }
+
         private async Task ExecuteOnceWithCooldownAsync()
         {
+            _isRunning = false;
+            _rotateTimer.Stop();
+
             ActionButton.IsEnabled = false;
+            ActionButton.Background = _runBrush;
             ActionButtonText.Text = "SPOOFING...";
             ActionButtonIcon.Glyph = "\uE895";
 
@@ -142,6 +176,7 @@ namespace MacSpoof
             else
             {
                 _cooldownTimer.Stop();
+                _cooldownSecondsLeft = 0;
                 ActionButton.IsEnabled = true;
                 ActionButtonText.Text = "RUN";
                 ActionButtonIcon.Glyph = "\uE768";
@@ -178,11 +213,13 @@ namespace MacSpoof
 
         private void ConfigurationComboBox_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)
         {
-            string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString();
+            int selectedIndex = ConfigurationComboBox.SelectedIndex;
+            string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString()?.Trim();
+            bool isOnce = selectedIndex == 0 || string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase);
 
             if (_isRunning)
             {
-                if (string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase))
+                if (isOnce)
                 {
                     StopLoop();
                 }

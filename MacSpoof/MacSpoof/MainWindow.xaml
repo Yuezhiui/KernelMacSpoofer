@@ -19,24 +19,24 @@
         <!-- Overlay to enhance contrast and depth -->
         <Grid Background="#2A050B14" />
 
-        <StackPanel Margin="24" Spacing="20" MaxWidth="400" VerticalAlignment="Center">
+        <StackPanel Margin="20,16" Spacing="10" MaxWidth="320" VerticalAlignment="Center">
             <!-- Header -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="MacSpoof" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"/>
-                <TextBlock Text="Configure your connection identity" FontSize="14" Foreground="#99B8E6" HorizontalAlignment="Center"/>
+            <StackPanel Spacing="2">
+                <TextBlock Text="MacSpoof" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"/>
+                <TextBlock Text="Configure your connection identity" FontSize="12" Foreground="#99B8E6" HorizontalAlignment="Center"/>
             </StackPanel>
 
             <!-- Current Target Card -->
-            <Border BorderBrush="#305A8DD9" BorderThickness="1" CornerRadius="12" Padding="20" Background="#380D1A30">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="CURRENT TARGET" FontSize="12" FontWeight="SemiBold" Foreground="#88A4D0" HorizontalAlignment="Center"/>
-                    <TextBlock x:Name="CurrentMacTextBlock" Text="MAC: Loading..." FontSize="24" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+            <Border BorderBrush="#305A8DD9" BorderThickness="1" CornerRadius="10" Padding="14,10" Background="#380D1A30">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="CURRENT TARGET" FontSize="10" FontWeight="SemiBold" Foreground="#88A4D0" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="CurrentMacTextBlock" Text="MAC: Loading..." FontSize="18" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
             <!-- Choose Configuration -->
-            <StackPanel Spacing="8">
-                <TextBlock Text="CHOOSE CONFIGURATION" FontSize="12" FontWeight="SemiBold" Foreground="#88A4D0"/>
+            <StackPanel Spacing="4">
+                <TextBlock Text="CHOOSE CONFIGURATION" FontSize="11" FontWeight="SemiBold" Foreground="#88A4D0"/>
                 <ComboBox x:Name="ConfigurationComboBox" HorizontalAlignment="Stretch" SelectedIndex="0" Background="#380D1A30" BorderBrush="#305A8DD9" CornerRadius="8" SelectionChanged="ConfigurationComboBox_SelectionChanged">
                     <ComboBoxItem Content="Once" />
                     <ComboBoxItem Content="5 Seconds" />
@@ -53,13 +53,15 @@
             </StackPanel>
 
             <!-- Action Button -->
-            <Button x:Name="ActionButton" HorizontalAlignment="Stretch" Height="48" CornerRadius="8" Background="#1D63ED" Foreground="White" Click="ActionButton_Click">
+            <Button x:Name="ActionButton" HorizontalAlignment="Stretch" Height="42" CornerRadius="8" Background="#1D63ED" Foreground="White" Click="ActionButton_Click">
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                    <FontIcon x:Name="ActionButtonIcon" Glyph="&#xE768;" FontSize="16"/>
-                    <TextBlock x:Name="ActionButtonText" Text="RUN" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                    <FontIcon x:Name="ActionButtonIcon" Glyph="&#xE768;" FontSize="14"/>
+                    <TextBlock x:Name="ActionButtonText" Text="RUN" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
                 </StackPanel>
             </Button>
 
+            <!-- Tray status hint -->
+            <TextBlock Text="Minimize to run in system tray" FontSize="10" Foreground="#6688B8" HorizontalAlignment="Center"/>
         </StackPanel>
     </Grid>
 </Window>
