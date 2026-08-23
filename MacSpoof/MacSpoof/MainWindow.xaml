@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="MacSpoof.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MacSpoof"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="MacSpoof">
+
+    <Grid RequestedTheme="Dark">
+        <!-- DeepSeek-style Blue Wave Gradient Background -->
+        <Image x:Name="BackgroundImage"
+               Stretch="UniformToFill" 
+               HorizontalAlignment="Center" 
+               VerticalAlignment="Center" />
+
+        <!-- Overlay to enhance contrast and depth -->
+        <Grid Background="#2A050B14" />
+
+        <StackPanel Margin="24" Spacing="20" MaxWidth="400" VerticalAlignment="Center">
+            <!-- Header -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="MacSpoof" FontSize="36" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"/>
+                <TextBlock Text="Configure your connection identity" FontSize="14" Foreground="#99B8E6" HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Current Target Card -->
+            <Border BorderBrush="#305A8DD9" BorderThickness="1" CornerRadius="12" Padding="20" Background="#380D1A30">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="CURRENT TARGET" FontSize="12" FontWeight="SemiBold" Foreground="#88A4D0" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="CurrentMacTextBlock" Text="MAC: Loading..." FontSize="24" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Choose Duration -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="CHOOSE HOURS OR MINUTES" FontSize="12" FontWeight="SemiBold" Foreground="#88A4D0"/>
+                <ComboBox x:Name="DurationComboBox" HorizontalAlignment="Stretch" SelectedIndex="0" Background="#380D1A30" BorderBrush="#305A8DD9" CornerRadius="8">
+                    <ComboBoxItem Content="5 Seconds" />
+                    <ComboBoxItem Content="10 Seconds" />
+                    <ComboBoxItem Content="30 Seconds" />
+                    <ComboBoxItem Content="5 Minutes" />
+                    <ComboBoxItem Content="10 Minutes" />
+                    <ComboBoxItem Content="15 Minutes" />
+                    <ComboBoxItem Content="30 Minutes" />
+                    <ComboBoxItem Content="1 Hour" />
+                    <ComboBoxItem Content="12 Hours" />
+                    <ComboBoxItem Content="24 Hours" />
+                </ComboBox>
+            </StackPanel>
+
+            <!-- Auto-Rotate -->
+            <Border BorderBrush="#305A8DD9" BorderThickness="1" CornerRadius="12" Padding="16" Background="#380D1A30">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Auto-Rotate" FontWeight="SemiBold" FontSize="16" Foreground="White"/>
+                        <TextBlock Text="Change MAC automatically" Foreground="#88A4D0" FontSize="14"/>
+                    </StackPanel>
+                    
+                    <ToggleSwitch x:Name="AutoRotateSwitch" Grid.Column="1" VerticalAlignment="Center" Margin="0" MinWidth="0" OnContent="" OffContent="" Toggled="AutoRotateSwitch_Toggled"/>
+                </Grid>
+            </Border>
+
+            <!-- Start Button -->
+            <Button x:Name="StartButton" HorizontalAlignment="Stretch" Height="48" CornerRadius="8" Background="#1D63ED" Foreground="White" Click="StartButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                    <FontIcon x:Name="StartButtonIcon" Glyph="&#xE768;" FontSize="16"/>
+                    <TextBlock x:Name="StartButtonText" Text="START" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+
+        </StackPanel>
+    </Grid>
+</Window>

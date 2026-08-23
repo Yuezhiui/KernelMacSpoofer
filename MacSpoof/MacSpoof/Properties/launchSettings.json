@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "MacSpoof (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "MacSpoof (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

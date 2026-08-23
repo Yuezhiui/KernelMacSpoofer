@@ -1,0 +1,18 @@
+# Build and Output Folders
+bin/
+obj/
+publish/
+MacSpoof_Portable/
+MacSpoof_Release/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+# Temporary & Generated files
+*.log
+scratch/
+scratch_*
+*.tmp
