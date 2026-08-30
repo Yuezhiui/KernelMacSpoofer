@@ -22,16 +22,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress
-
       - name: Restore and Publish Standalone Executable
         run: |
           dotnet publish MacSpoof/MacSpoof/MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64
-
-      - name: Compile Inno Setup Installer
-        run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
 
       - name: Package Portable ZIP
         run: |
@@ -42,7 +35,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            KernelMacSpoofer-Setup-v1.0.0-x64.exe
             KernelMacSpoofer-v1.0.0-Portable-x64.zip
           draft: false
           prerelease: false
