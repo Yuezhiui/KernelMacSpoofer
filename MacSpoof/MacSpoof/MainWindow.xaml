@@ -19,13 +19,14 @@
         <!-- Overlay to enhance contrast and depth -->
         <Grid Background="#2A050B14" />
 
-        <StackPanel Margin="20,16" Spacing="10" MaxWidth="320" VerticalAlignment="Center">
+        <StackPanel Margin="20,16" Spacing="10" MaxWidth="380" VerticalAlignment="Center">
             <!-- Header -->
             <StackPanel Spacing="2">
                 <TextBlock Text="MacSpoof" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"/>
                 <TextBlock Text="Configure your connection identity" FontSize="12" Foreground="#99B8E6" HorizontalAlignment="Center"/>
             </StackPanel>
 
+            <ComboBox x:Name="AdapterComboBox" Header="Network adapter" DisplayMemberPath="Name" HorizontalAlignment="Stretch" />
             <!-- Current Target Card -->
             <Border BorderBrush="#305A8DD9" BorderThickness="1" CornerRadius="10" Padding="14,10" Background="#380D1A30">
                 <StackPanel Spacing="4">
@@ -39,9 +40,6 @@
                 <TextBlock Text="CHOOSE CONFIGURATION" FontSize="11" FontWeight="SemiBold" Foreground="#88A4D0"/>
                 <ComboBox x:Name="ConfigurationComboBox" HorizontalAlignment="Stretch" SelectedIndex="0" Background="#380D1A30" BorderBrush="#305A8DD9" CornerRadius="8" SelectionChanged="ConfigurationComboBox_SelectionChanged">
                     <ComboBoxItem Content="Once" />
-                    <ComboBoxItem Content="5 Seconds" />
-                    <ComboBoxItem Content="10 Seconds" />
-                    <ComboBoxItem Content="30 Seconds" />
                     <ComboBoxItem Content="5 Minutes" />
                     <ComboBoxItem Content="10 Minutes" />
                     <ComboBoxItem Content="15 Minutes" />
@@ -60,6 +58,12 @@
                 </StackPanel>
             </Button>
 
+            <CheckBox x:Name="ClearCacheCheckBox" Content="Refresh network caches after change" IsChecked="True" />
+            <Button x:Name="ClearCacheButton" Content="Clear network caches" Click="ClearCacheButton_Click" HorizontalAlignment="Stretch" />
+            <Button x:Name="RestoreButton" Content="Restore default MAC" Click="RestoreButton_Click" HorizontalAlignment="Stretch" />
+            <ScrollViewer MaxHeight="110" VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="StatusTextBlock" Text="Ready. MAC changes briefly disconnect the adapter." TextWrapping="Wrap" FontSize="12" />
+            </ScrollViewer>
             <!-- Tray status hint -->
             <TextBlock Text="Minimize to run in system tray" FontSize="10" Foreground="#6688B8" HorizontalAlignment="Center"/>
         </StackPanel>

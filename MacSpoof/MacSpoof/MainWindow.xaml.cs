@@ -17,6 +17,10 @@ namespace MacSpoof
         private DispatcherTimer _cooldownTimer;
         private int _cooldownSecondsLeft = 0;
         private bool _isRunning = false;
+        private bool _operationInProgress;
+        public bool IsNetworkOperationRunning => _operationInProgress;
+        public string CurrentMacAddress => MacSpoofService.GetCurrentMacAddress(SelectedAdapterId);
+        private string SelectedAdapterId => (AdapterComboBox.SelectedItem as NetworkInterface)?.Id ?? "";
         private TrayIconManager? _trayManager;
 
         private readonly SolidColorBrush _runBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 29, 99, 237));
@@ -27,6 +31,8 @@ namespace MacSpoof
             InitializeComponent();
             SetFixedSize();
             LoadBackgroundImage();
+            AdapterComboBox.ItemsSource = MacSpoofService.GetAdapters();
+            AdapterComboBox.SelectedIndex = 0;
             LoadCurrentMacAddress();
 
             _rotateTimer = new DispatcherTimer();
@@ -51,8 +57,13 @@ namespace MacSpoof
                 System.Diagnostics.Debug.WriteLine($"Failed to init tray icon: {ex.Message}");
             }
 
+            AppWindow.Closing += (s, e) => { e.Cancel = _operationInProgress; };
+
             this.Closed += (s, e) =>
             {
+                _rotateTimer.Stop();
+                _pollTimer.Stop();
+                _cooldownTimer.Stop();
                 _trayManager?.Dispose();
             };
         }
@@ -91,33 +102,72 @@ namespace MacSpoof
             }
             
             // Compact, streamlined widget size
-            appWindow.Resize(new Windows.Graphics.SizeInt32(360, 420));
+            appWindow.Resize(new Windows.Graphics.SizeInt32(440, 720));
         }
 
         private void LoadCurrentMacAddress()
         {
-            string formattedMac = MacSpoofService.GetCurrentMacAddress();
+            string formattedMac = MacSpoofService.GetCurrentMacAddress(SelectedAdapterId);
             CurrentMacTextBlock.Text = $"MAC: {formattedMac}";
             _trayManager?.UpdateTooltip($"MacSpoof: {formattedMac}");
         }
 
         private async Task RandomizeMacAddressAsync()
         {
+            await RunNetworkOperationAsync(() => MacSpoofService.ChangeMacAsync(
+                SelectedAdapterId, false, ClearCacheCheckBox.IsChecked == true));
+        }
+
+        private async Task RunNetworkOperationAsync(Func<Task<NetworkResult>> operation)
+        {
+            if (_operationInProgress) return;
+            _operationInProgress = true;
+            _rotateTimer.Stop();
+            ActionButton.IsEnabled = false;
+            AdapterComboBox.IsEnabled = false;
+            ConfigurationComboBox.IsEnabled = false;
+            RestoreButton.IsEnabled = false;
+            ClearCacheButton.IsEnabled = false;
+            StatusTextBlock.Text = "Working; the adapter may briefly disconnect...";
             try
             {
-                bool success = await MacSpoofService.SpoofActiveAdapterAsync();
-                await Task.Delay(2000);
+                var result = await operation();
+                StatusTextBlock.Text = result.Message;
+                if (!result.Success) StopLoop();
                 LoadCurrentMacAddress();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error changing MAC address: {ex.Message}");
+                StatusTextBlock.Text = ex.Message;
+                StopLoop();
             }
+            finally
+            {
+                _operationInProgress = false;
+                ActionButton.IsEnabled = _cooldownSecondsLeft == 0;
+                AdapterComboBox.IsEnabled = !_isRunning;
+                ConfigurationComboBox.IsEnabled = true;
+                RestoreButton.IsEnabled = true;
+                ClearCacheButton.IsEnabled = true;
+                if (_isRunning) _rotateTimer.Start();
+            }
+        }
+
+        private async void RestoreButton_Click(object sender, RoutedEventArgs e)
+        {
+            StopLoop();
+            await RunNetworkOperationAsync(() => MacSpoofService.ChangeMacAsync(SelectedAdapterId, true, ClearCacheCheckBox.IsChecked == true));
+        }
+
+        private async void ClearCacheButton_Click(object sender, RoutedEventArgs e)
+        {
+            StopLoop();
+            await RunNetworkOperationAsync(() => MacSpoofService.ClearCachesAsync(SelectedAdapterId));
         }
 
         private async void ActionButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_cooldownSecondsLeft > 0) return;
+            if (_cooldownSecondsLeft > 0 || _operationInProgress) return;
 
             int selectedIndex = ConfigurationComboBox.SelectedIndex;
             string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString()?.Trim();
@@ -144,7 +194,7 @@ namespace MacSpoof
 
         public async void TriggerSpoofOnceFromTray()
         {
-            if (_cooldownSecondsLeft > 0) return;
+            if (_cooldownSecondsLeft > 0 || _operationInProgress) return;
             await ExecuteOnceWithCooldownAsync();
         }
 
@@ -177,7 +227,7 @@ namespace MacSpoof
             {
                 _cooldownTimer.Stop();
                 _cooldownSecondsLeft = 0;
-                ActionButton.IsEnabled = true;
+                ActionButton.IsEnabled = !_operationInProgress;
                 ActionButtonText.Text = "RUN";
                 ActionButtonIcon.Glyph = "\uE768";
                 ActionButton.Background = _runBrush;
@@ -191,16 +241,15 @@ namespace MacSpoof
             ActionButtonIcon.Glyph = "\uE71A";
             ActionButton.Background = _stopBrush;
 
-            await RandomizeMacAddressAsync();
-
             _rotateTimer.Interval = ParseDuration(durationStr);
-            _rotateTimer.Start();
+            await RandomizeMacAddressAsync();
         }
 
         private void StopLoop()
         {
             _isRunning = false;
             _rotateTimer.Stop();
+            AdapterComboBox.IsEnabled = !_operationInProgress;
             ActionButtonText.Text = "RUN";
             ActionButtonIcon.Glyph = "\uE768";
             ActionButton.Background = _runBrush;

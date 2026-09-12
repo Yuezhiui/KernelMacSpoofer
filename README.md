@@ -18,10 +18,10 @@ The application allows instant single-execution spoofing with safety cooldowns a
 
 - **Native C# Implementation**: Zero external dependencies on Python runtimes or third-party executables.
 - **Intelligent Interface Detection**: Automatically discovers active Wi-Fi and Ethernet network interfaces.
-- **IEEE Standards Compliance**: Generates cryptographically secure, locally administered unicast MAC addresses (`02:XX:XX:...`, `06:XX:XX:...`, `0A:XX:XX:...`, `0E:XX:XX:...`) fully compatible with Intel, Realtek, Qualcomm, and other modern network controller drivers.
+- **IEEE Standards Compliance**: Generates cryptographically secure, locally administered unicast MAC addresses (`02:XX:XX:...`, `06:XX:XX:...`, `0A:XX:XX:...`, `0E:XX:XX:...`) with locally administered unicast bits set. Driver support varies; some Wi-Fi adapters ignore or reject overrides.
 - **Execution Modes**:
   - **Once**: Immediate MAC randomization with an integrated 5-second cooldown cycle.
-  - **Automated Intervals**: Continuous periodic rotation configurable from 5 seconds up to 24 hours.
+  - **Automated Intervals**: Continuous periodic rotation configurable from 5 minutes up to 24 hours, measured after each operation finishes.
 - **Modern User Interface**: Native Windows App SDK / WinUI 3 controls with translucent frosted styling and dark-adapted controls.
 - **Open Source Licensing**: Clean codebase distributed under the permissive MIT License.
 
@@ -40,7 +40,7 @@ The application allows instant single-execution spoofing with safety cooldowns a
 ### Clone the Repository
 ```bash
 git clone https://github.com/Yuezhiui/KernelMacSpoofer.git
-cd KernelMacSpoofer/MacSpoof
+cd KernelMacSpoofer/MacSpoof/MacSpoof
 ```
 
 ### Compile Release Binary
@@ -85,3 +85,31 @@ KernelMacSpoofer/
 
 MIT — Copyright (c) 2026 Zhi  
 See [LICENSE](LICENSE) for full text.
+
+
+## Connection reliability and cache cleanup
+
+Select the intended adapter, including a disconnected adapter when recovering from a failed change. Changes match its registry entry by GUID, serialize operations, check command failures/timeouts, and verify the effective MAC. If a connected adapter does not regain a usable local IP address within 45 seconds, the previous registry setting is restored and the adapter restarted. This checks local connectivity, not Internet access. Rotation stops on errors. Normal exit is blocked while a network operation is in progress.
+
+- **Restore default MAC** removes the NetworkAddress override and restarts the selected adapter. Windows Wi-Fi randomization or the driver may still determine the effective address.
+- **Clear network caches** flushes the system DNS cache, clears the selected adapter's active IPv4/IPv6 neighbor caches, and renews IPv4 DHCP if enabled. It does not release the current lease first, delete saved Wi-Fi passwords, change static IP settings, or reset the whole network stack. A checkbox enables the same cleanup after each successful change.
+- A MAC override replaces the previous override; there is no list of old MAC addresses in this setting to delete. Cleanup cannot erase the factory MAC, router logs, DHCP server history, or make the computer a completely new device. A DHCP renewal does not guarantee a different IP address.
+- If Wi-Fi fails, stop rotation, select Wi-Fi, choose **Restore default MAC**, then reconnect through Windows Wi-Fi settings. Some drivers and access points do not support the requested change.
+
+Command references: [Microsoft ipconfig documentation](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/ipconfig) and [Microsoft netsh interface documentation](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/netsh-interface).
+
+Non-disruptive checks: `dotnet run --project tests/MacSpoof.Checks`. These cover generated addresses, validation, formatting, and missing adapters; they do not exercise live adapter restarts or rollback. Hardware testing is still required.
+
+
+## Windows installer (v1.1.0)
+
+Download `KernelMacSpoofer-Setup-v1.1.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest). Run it to install the self-contained Windows x64 app; an optional desktop shortcut and Windows uninstall entry are included. No network settings are changed by installation or uninstallation. Use Restore default MAC inside the app before uninstalling if you want to remove an applied override. This is a Windows application, not a macOS application.
+
+To build from the repository root with .NET 8 and Inno Setup 6:
+
+```powershell
+dotnet publish MacSpoof/MacSpoof/MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64 -o MacSpoof_Fixed
+iscc installer.iss
+```
+
+The installer is generated under `artifacts/`. The portable folder can be launched using `Run_MacSpoof.bat`. Setup is unsigned. Build and non-disruptive checks passed; adapter-specific Wi-Fi reconnection and rollback still require live hardware testing.

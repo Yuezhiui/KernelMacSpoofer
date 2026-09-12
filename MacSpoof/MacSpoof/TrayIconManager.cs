@@ -234,7 +234,7 @@ namespace MacSpoof
             IntPtr hMenu = CreatePopupMenu();
             if (hMenu == IntPtr.Zero) return;
 
-            string currentMac = MacSpoofService.GetCurrentMacAddress();
+            string currentMac = _mainWindow.CurrentMacAddress;
             AppendMenu(hMenu, MF_STRING | MF_GRAYED, 0, $"MacSpoof ({currentMac})");
             AppendMenu(hMenu, MF_SEPARATOR, 0, null);
             AppendMenu(hMenu, MF_STRING, CMD_SPOOF_ONCE, "Spoof MAC (Once)");
@@ -259,6 +259,7 @@ namespace MacSpoof
             }
             else if (cmd == CMD_EXIT)
             {
+                if (_mainWindow.IsNetworkOperationRunning) return;
                 Dispose();
                 Environment.Exit(0);
             }

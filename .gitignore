@@ -18,3 +18,6 @@ scratch_*
 *.tmp
 *.exe
 *.zip
+MacSpoof_Fixed/
+
+artifacts/
