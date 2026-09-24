@@ -1,6 +1,6 @@
 # MacSpoof
 
-A high-performance, native Windows MAC address spoofer and automated connection identity rotator developed with WinUI 3 and .NET 8.
+A compact native Windows MAC address manager and automated connection identity rotator built with WinUI 3 and .NET 8, featuring a monochrome sketch-style interface and official MacSpoof branding.
 
 Features a modern WinUI 3 interface, Material Symbols-derived icon assets, and direct Windows registry-level network adapter management.
 
@@ -105,11 +105,11 @@ Command references: [Microsoft ipconfig documentation](https://learn.microsoft.c
 Non-disruptive checks: `dotnet run --project tests/MacSpoof.Checks`. These cover generated addresses, validation, formatting, rollback expectations, usable-IP state, safe command argument construction, partial cache-warning behavior, and missing adapters. They do not perform live registry writes or adapter restarts; hardware testing is still required.
 
 
-## Portable Windows release (v1.4.0)
+## Windows release (v1.4.1)
 
-Download `MacSpoof-v1.4.0-Portable-x64.zip` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest). Release artifacts follow the pattern `MacSpoof-vX-Portable-x64.zip`.
+Download `MacSpoof-Setup-v1.4.1-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use `MacSpoof-v1.4.1-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
 
-The portable package contains the self-contained Windows x64 app. Extract it and run `MacSpoof.exe` directly. This is a Windows application, not a macOS application.
+The installer and portable package both contain the current self-contained Windows x64 build, including the revised sketch UI and official MacSpoof logo. The portable package can be extracted and launched with `MacSpoof.exe`; the installer adds normal Windows install/uninstall integration and an optional desktop shortcut. This is a Windows application, not a macOS application.
 
 To build from the repository root with .NET 8:
 
@@ -117,7 +117,7 @@ To build from the repository root with .NET 8:
 dotnet publish MacSpoof/MacSpoof/MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64 -o MacSpoof_Fixed
 ```
 
-The release workflow packages the published app as a portable ZIP under `artifacts/`. The package includes `LICENSE` and the generated third-party notice. Every release includes `SHA256SUMS.txt`. Build and non-disruptive checks passed; adapter-specific Wi-Fi reconnection and rollback still require live hardware testing.
+The release workflow packages the published app as both an installer and portable ZIP under `artifacts/`. The installer definition is generated temporarily on the GitHub runner, so no `.iss` file is kept in the repository. No BAT launcher is included. The portable package includes `LICENSE` and the generated third-party notice. Every release includes `SHA256SUMS.txt`. Build and non-disruptive checks passed; adapter-specific Wi-Fi reconnection and rollback still require live hardware testing.
 
 ### Release signing
 
@@ -126,4 +126,4 @@ The GitHub Actions release workflow supports optional Authenticode signing with 
 - `WINDOWS_SIGNING_PFX_BASE64` — the Base64-encoded contents of the code-signing `.pfx` file.
 - `WINDOWS_SIGNING_PFX_PASSWORD` — the password for that `.pfx` file.
 
-When both secrets are configured, the workflow signs `MacSpoof.exe` before creating the portable ZIP and then writes `SHA256SUMS.txt` before publishing the release. When both secrets are absent, the release still builds and the workflow/release notes clearly report that the artifacts are unsigned. A partial signing configuration fails the workflow instead of silently producing an unexpected unsigned release.
+When both secrets are configured, the workflow signs `MacSpoof.exe` before creating the packages, signs the generated installer, and then writes `SHA256SUMS.txt` before publishing the release. When both secrets are absent, the release still builds and the workflow/release notes clearly report that the artifacts are unsigned. A partial signing configuration fails the workflow instead of silently producing an unexpected unsigned release.

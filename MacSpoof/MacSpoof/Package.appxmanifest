@@ -10,7 +10,7 @@
   <Identity
     Name="ede47658-f5b5-4804-badd-b8adbdd7e3c7"
     Publisher="CN=Koshi"
-    Version="1.4.0.0" />
+    Version="1.4.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="ede47658-f5b5-4804-badd-b8adbdd7e3c7" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -35,7 +35,7 @@
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
         DisplayName="MacSpoof"
-        Description="Local Windows network identity rotator"
+        Description="Native Windows MAC address manager and connection identity rotator"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

@@ -70,7 +70,7 @@ jobs:
 
           "MACSPOOF_SIGNING_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "MACSPOOF_SIGNING_STATUS=Authenticode signed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Build portable ZIP
+      - name: Build installer and portable ZIP
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path artifacts -Force | Out-Null
@@ -95,11 +95,100 @@ jobs:
           Copy-Item 'MacSpoof_Fixed/*' -Destination $portableDir -Recurse
           Copy-Item 'LICENSE', 'artifacts/THIRD_PARTY_NOTICES.md' -Destination $portableDir
           Compress-Archive -Path "$portableDir/*" -DestinationPath "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip" -Force
+
+          # Generate the installer definition only on the CI runner. No .iss file is kept in the repository.
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) { throw 'Inno Setup 6 is missing from the runner' }
+
+          $sourceDir = (Resolve-Path 'MacSpoof_Fixed').Path
+          $iconFile = (Resolve-Path 'MacSpoof/MacSpoof/Assets/MacIcon.ico').Path
+          $licenseFile = (Resolve-Path 'LICENSE').Path
+          $noticeFile = (Resolve-Path 'artifacts/THIRD_PARTY_NOTICES.md').Path
+          $outputDir = (Resolve-Path 'artifacts').Path
+          $issPath = Join-Path $env:RUNNER_TEMP 'MacSpoof-release.iss'
+
+          @"
+          [Setup]
+          AppId=KernelMacSpoofer
+          AppName=MacSpoof
+          AppVersion=$env:MACSPOOF_VERSION
+          AppPublisher=Zhi
+          AppPublisherURL=https://github.com/Yuezhiui/KernelMacSpoofer
+          AppSupportURL=https://github.com/Yuezhiui/KernelMacSpoofer/issues
+          AppUpdatesURL=https://github.com/Yuezhiui/KernelMacSpoofer/releases
+          DefaultDirName={autopf}\MacSpoof
+          DefaultGroupName=MacSpoof
+          UninstallDisplayName=MacSpoof
+          UninstallDisplayIcon={app}\MacSpoof.exe
+          SetupIconFile=$iconFile
+          LicenseFile=$licenseFile
+          Compression=lzma2
+          SolidCompression=yes
+          ArchitecturesAllowed=x64compatible
+          ArchitecturesInstallIn64BitMode=x64compatible
+          MinVersion=10.0.17763
+          OutputDir=$outputDir
+          OutputBaseFilename=MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64
+          PrivilegesRequired=admin
+          WizardStyle=modern
+          CloseApplications=yes
+          RestartApplications=no
+          VersionInfoCompany=Zhi
+          VersionInfoDescription=MacSpoof Windows installer
+          VersionInfoProductName=MacSpoof
+          VersionInfoProductVersion=$env:MACSPOOF_VERSION
+
+          [Files]
+          Source: "$sourceDir\*"; DestDir: "{app}"; Excludes: "*.pdb"; Flags: ignoreversion recursesubdirs createallsubdirs
+          Source: "$licenseFile"; DestDir: "{app}"; Flags: ignoreversion
+          Source: "$noticeFile"; DestDir: "{app}"; Flags: ignoreversion
+
+          [Icons]
+          Name: "{group}\MacSpoof"; Filename: "{app}\MacSpoof.exe"
+          Name: "{autodesktop}\MacSpoof"; Filename: "{app}\MacSpoof.exe"; Tasks: desktopicon
+
+          [Tasks]
+          Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+          "@ | Set-Content -LiteralPath $issPath -Encoding utf8
+
+          & $compiler $issPath
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+      - name: Sign installer if configured
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          if ($env:MACSPOOF_SIGNING_ENABLED -ne 'true') {
+            Write-Warning 'Installer remains unsigned because Authenticode signing secrets are not configured.'
+            exit 0
+          }
+
+          $installer = "artifacts/MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64.exe"
+          if (-not (Test-Path -LiteralPath $installer)) { throw "Installer not found: $installer" }
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe was not found on the Windows runner' }
+
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'macspoof-signing.pfx'
+          try {
+            $pfxBytes = [Convert]::FromBase64String(($env:WINDOWS_SIGNING_PFX_BASE64 -replace '\s', ''))
+            [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+            & $signtool.FullName sign /fd SHA256 /f $pfxPath /p $env:WINDOWS_SIGNING_PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $installer
+            if ($LASTEXITCODE -ne 0) { throw 'Signing the installer failed' }
+            & $signtool.FullName verify /pa $installer
+            if ($LASTEXITCODE -ne 0) { throw 'Authenticode verification failed for the installer' }
+          }
+          finally {
+            Remove-Item -LiteralPath $pfxPath -Force -ErrorAction SilentlyContinue
+          }
       - name: Generate checksums and signing report
         shell: pwsh
         run: |
           $releaseFiles = @(
-            "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip"
+            "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip",
+            "artifacts/MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64.exe"
           )
           foreach ($file in $releaseFiles) {
             if (-not (Test-Path -LiteralPath $file)) { throw "Release artifact not found: $file" }
@@ -111,7 +200,7 @@ jobs:
 
           if ($env:MACSPOOF_SIGNING_ENABLED -eq 'true') {
             $status = 'Authenticode signed'
-            $detail = 'MacSpoof.exe was Authenticode signed before the portable ZIP and checksums were generated.'
+            $detail = 'MacSpoof.exe and the Windows installer were Authenticode signed before checksums were generated.'
           } else {
             $status = 'Unsigned'
             $detail = 'Signing secrets were not configured, so this release was built without Authenticode signatures.'
@@ -125,7 +214,11 @@ jobs:
           ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
 
           @(
-            '## Build integrity'
+            '## MacSpoof v' + $env:MACSPOOF_VERSION
+            ''
+            'Updated the sketch-style interface to match the approved proportions more closely, including larger full-width action controls and the new official red-and-black MacSpoof logo across the app and Windows branding.'
+            ''
+            '### Build integrity'
             ''
             "**Authenticode signing:** $status"
             ''
@@ -137,6 +230,7 @@ jobs:
           name: MacSpoof-windows-x64
           path: |
             artifacts/MacSpoof-v*-Portable-x64.zip
+            artifacts/MacSpoof-Setup-v*-x64.exe
             artifacts/SHA256SUMS.txt
             artifacts/THIRD_PARTY_NOTICES.md
       - name: Create GitHub release
@@ -145,6 +239,7 @@ jobs:
         with:
           files: |
             artifacts/MacSpoof-v*-Portable-x64.zip
+            artifacts/MacSpoof-Setup-v*-x64.exe
             artifacts/SHA256SUMS.txt
             artifacts/THIRD_PARTY_NOTICES.md
           body_path: release-signing-note.md
