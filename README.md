@@ -22,7 +22,7 @@ The application allows instant single-execution spoofing with safety cooldowns a
 - **Execution Modes**:
   - **Once**: Immediate MAC randomization with an integrated 5-second cooldown cycle.
   - **Automated Intervals**: Continuous periodic rotation configurable from 5 minutes up to 24 hours, measured after each operation finishes.
-- **Modern User Interface**: Native Windows App SDK / WinUI 3 controls with translucent frosted styling and dark-adapted controls.
+- **Modern User Interface**: Native Windows App SDK / WinUI 3 controls with a compact monochrome sketch-style layout, outlined cards, and Material Symbols-derived icons.
 - **Open Source Licensing**: Clean codebase distributed under the permissive MIT License.
 
 ---
@@ -105,9 +105,9 @@ Command references: [Microsoft ipconfig documentation](https://learn.microsoft.c
 Non-disruptive checks: `dotnet run --project tests/MacSpoof.Checks`. These cover generated addresses, validation, formatting, rollback expectations, usable-IP state, safe command argument construction, partial cache-warning behavior, and missing adapters. They do not perform live registry writes or adapter restarts; hardware testing is still required.
 
 
-## Windows installer and portable release (v1.3.0)
+## Windows installer and portable release (v1.4.0)
 
-Download `MacSpoof-Setup-v1.3.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use the portable `MacSpoof-v1.3.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
+Download `MacSpoof-Setup-v1.4.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use the portable `MacSpoof-v1.4.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
 
 The installer contains the self-contained Windows x64 app; an optional desktop shortcut and Windows uninstall entry are included. No network settings are changed by installation or uninstallation. Use Restore default MAC inside the app before uninstalling if you want to remove an applied override. This is a Windows application, not a macOS application.
 

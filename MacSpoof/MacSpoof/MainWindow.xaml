@@ -8,279 +8,89 @@
     mc:Ignorable="d"
     Title="MacSpoof">
 
-    <Grid RequestedTheme="Dark">
+    <Grid RequestedTheme="Light" Background="#FFF9F8F4">
         <Grid.Resources>
-            <SolidColorBrush x:Key="PageBackgroundBrush" Color="#FF071019" />
-            <SolidColorBrush x:Key="SidebarBrush" Color="#FF071018" />
-            <SolidColorBrush x:Key="CardBrush" Color="#E6121D28" />
-            <SolidColorBrush x:Key="CardDeepBrush" Color="#F00A131D" />
-            <SolidColorBrush x:Key="CardBorderBrush" Color="#FF26394B" />
-            <SolidColorBrush x:Key="SoftBorderBrush" Color="#FF203142" />
-            <SolidColorBrush x:Key="PrimaryBlueBrush" Color="#FF3A8DFF" />
-            <SolidColorBrush x:Key="AccentCyanBrush" Color="#FF36C7FF" />
-            <SolidColorBrush x:Key="TextBrush" Color="#FFF4F7FB" />
-            <SolidColorBrush x:Key="SecondaryTextBrush" Color="#FF9BAEC7" />
-            <SolidColorBrush x:Key="MutedTextBrush" Color="#FF73869F" />
-            <SolidColorBrush x:Key="GreenBrush" Color="#FF2CF070" />
-            <SolidColorBrush x:Key="DangerBrush" Color="#FFE45D68" />
-
-            <LinearGradientBrush x:Key="PrimaryActionBrush" StartPoint="0,0" EndPoint="1,0">
-                <GradientStop Color="#FF5264FF" Offset="0" />
-                <GradientStop Color="#FF2179FF" Offset="0.52" />
-                <GradientStop Color="#FF28B8F4" Offset="1" />
-            </LinearGradientBrush>
-
-            <LinearGradientBrush x:Key="SelectedTileBrush" StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#FF102F56" Offset="0" />
-                <GradientStop Color="#FF101B31" Offset="1" />
-            </LinearGradientBrush>
+            <SolidColorBrush x:Key="InkBrush" Color="#FF111111" />
+            <SolidColorBrush x:Key="PaperBrush" Color="#FFFDFCF8" />
+            <SolidColorBrush x:Key="SoftPaperBrush" Color="#FFF4F3EF" />
+            <SolidColorBrush x:Key="MutedInkBrush" Color="#FF555555" />
+            <SolidColorBrush x:Key="DisabledInkBrush" Color="#FF9A9A96" />
 
             <Style TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="Segoe UI Variable" />
+                <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
             </Style>
+
             <Style TargetType="Button">
                 <Setter Property="FontFamily" Value="Segoe UI Variable" />
+                <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+                <Setter Property="Background" Value="{StaticResource PaperBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource InkBrush}" />
+                <Setter Property="BorderThickness" Value="1.6" />
                 <Setter Property="CornerRadius" Value="9" />
             </Style>
+
             <Style TargetType="ComboBox">
                 <Setter Property="FontFamily" Value="Segoe UI Variable" />
+                <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
+                <Setter Property="Background" Value="{StaticResource PaperBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource InkBrush}" />
+                <Setter Property="BorderThickness" Value="1.4" />
                 <Setter Property="CornerRadius" Value="8" />
-                <Setter Property="MinHeight" Value="41" />
             </Style>
+
             <Style TargetType="CheckBox">
                 <Setter Property="FontFamily" Value="Segoe UI Variable" />
+                <Setter Property="Foreground" Value="{StaticResource InkBrush}" />
             </Style>
         </Grid.Resources>
 
-        <Grid.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                <GradientStop Color="#FF061019" Offset="0" />
-                <GradientStop Color="#FF07131F" Offset="0.48" />
-                <GradientStop Color="#FF091827" Offset="1" />
-            </LinearGradientBrush>
-        </Grid.Background>
-
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="92" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-
-        <!-- Left navigation rail -->
-        <Border Grid.Column="0"
-                Background="{StaticResource SidebarBrush}"
-                BorderBrush="#FF172433"
-                BorderThickness="0,0,1,0">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <StackPanel Margin="7,12,6,0" Spacing="12">
-                    <StackPanel Orientation="Horizontal" Spacing="7">
-                        <Border Width="21" Height="21" CornerRadius="6"
-                                Background="#FFF1F6FF"
-                                VerticalAlignment="Center">
-                            <Image Width="14" Height="14">
-                                <Image.Source>
-                                    <SvgImageSource UriSource="ms-appx:///Assets/material-shield-lock.svg" />
-                                </Image.Source>
-                            </Image>
-                        </Border>
-                        <TextBlock Text="MacSpoof"
-                                   VerticalAlignment="Center"
-                                   FontSize="9.5"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextBrush}" />
-                    </StackPanel>
-
-                    <StackPanel Spacing="5">
-                        <Button x:Name="NetworkNavButton"
-                                Height="38"
-                                Padding="6,0"
-                                HorizontalContentAlignment="Left"
-                                BorderBrush="#FF24549D"
-                                BorderThickness="1"
-                                Background="#FF102A4A"
-                                Click="NetworkNavButton_Click">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Image Width="14" Height="14" VerticalAlignment="Center">
-                                    <Image.Source>
-                                        <SvgImageSource UriSource="ms-appx:///Assets/material-wifi.svg" />
-                                    </Image.Source>
-                                </Image>
-                                <TextBlock Text="Network" FontSize="9.2" FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextBrush}"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Height="36"
-                                Padding="6,0"
-                                HorizontalContentAlignment="Left"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Click="SettingsNavButton_Click">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Image Width="14" Height="14" VerticalAlignment="Center">
-                                    <Image.Source>
-                                        <SvgImageSource UriSource="ms-appx:///Assets/material-settings.svg" />
-                                    </Image.Source>
-                                </Image>
-                                <TextBlock Text="Settings" FontSize="9"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Height="36"
-                                Padding="6,0"
-                                HorizontalContentAlignment="Left"
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Click="AboutNavButton_Click">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Image Width="14" Height="14" VerticalAlignment="Center">
-                                    <Image.Source>
-                                        <SvgImageSource UriSource="ms-appx:///Assets/material-info.svg" />
-                                    </Image.Source>
-                                </Image>
-                                <TextBlock Text="About" FontSize="9"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </StackPanel>
-
-                <Grid Grid.Row="2" Margin="0,18,0,8" IsHitTestVisible="False">
-                    <Rectangle HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                        <Rectangle.Fill>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#00162A43" Offset="0" />
-                                <GradientStop Color="#8A0B274B" Offset="0.54" />
-                                <GradientStop Color="#221A66D8" Offset="1" />
-                            </LinearGradientBrush>
-                        </Rectangle.Fill>
-                    </Rectangle>
-                    <Canvas>
-                        <Line X1="4" Y1="290" X2="90" Y2="238" Stroke="#7A1A75FF" StrokeThickness="1" />
-                        <Line X1="0" Y1="302" X2="90" Y2="248" Stroke="#59218CFF" StrokeThickness="1" />
-                        <Line X1="14" Y1="316" X2="90" Y2="262" Stroke="#3527B8FF" StrokeThickness="1" />
-                        <Border Canvas.Left="20" Canvas.Top="324"
-                                Width="48" Height="48" CornerRadius="13"
-                                BorderBrush="#FF415B7C" BorderThickness="1"
-                                Background="#CC0D1825">
-                            <Image Width="25" Height="25">
-                                <Image.Source>
-                                    <SvgImageSource UriSource="ms-appx:///Assets/material-shield-lock.svg" />
-                                </Image.Source>
-                            </Image>
-                        </Border>
-                    </Canvas>
-                    <StackPanel VerticalAlignment="Bottom" Margin="15,0,10,54" Spacing="2">
-                        <TextBlock Text="CONTROL" FontSize="8" CharacterSpacing="260" Foreground="#FF8EA3C0" />
-                        <TextBlock Text="YOUR" FontSize="8" CharacterSpacing="260" Foreground="#FF8EA3C0" />
-                        <TextBlock Text="CONNECTION" FontSize="8" CharacterSpacing="230" Foreground="#FF8EA3C0" />
-                        <TextBlock Text="PRIVACY" FontSize="8" CharacterSpacing="260" Foreground="#FF8EA3C0" />
-                        <Border Width="28" Height="2" Margin="0,8,0,0" HorizontalAlignment="Left">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#FF37C8FF" Offset="0" />
-                                    <GradientStop Color="#FF2D6BFF" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
-                    </StackPanel>
-                </Grid>
-
-                <StackPanel Grid.Row="3"
-                            Margin="6,0,5,10"
-                            Orientation="Horizontal"
-                            Spacing="4">
-                    <Image Width="13" Height="13">
-                        <Image.Source>
-                            <SvgImageSource UriSource="ms-appx:///Assets/material-shield-lock.svg" />
-                        </Image.Source>
-                    </Image>
-                    <TextBlock Text="MacSpoof" FontSize="7.8" Foreground="#FFA9B7CC" VerticalAlignment="Center" />
-                    <TextBlock Text="v1.3.0" FontSize="7.2" Foreground="#FF74849A" VerticalAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- Main dashboard -->
         <ScrollViewer x:Name="MainScrollViewer"
-                      Grid.Column="1"
                       VerticalScrollBarVisibility="Hidden"
                       HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Margin="10,9,9,5" Spacing="7">
-                <!-- Header -->
-                <Grid Margin="1,0,1,1">
+            <StackPanel Margin="14,14,14,12" Spacing="8">
+
+                <!-- Product header -->
+                <Grid Margin="4,0,4,1">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="56" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <Border Width="40" Height="40" CornerRadius="11"
-                            Background="#FFF0F5FF"
-                            BorderBrush="#FFE6EEFF"
-                            BorderThickness="1">
-                        <Image Width="23" Height="23">
+                    <Border Width="50"
+                            Height="50"
+                            CornerRadius="12"
+                            BorderBrush="{StaticResource InkBrush}"
+                            BorderThickness="1.7"
+                            Background="{StaticResource PaperBrush}">
+                        <Image Width="27" Height="27">
                             <Image.Source>
                                 <SvgImageSource UriSource="ms-appx:///Assets/material-shield-lock.svg" />
                             </Image.Source>
                         </Image>
                     </Border>
 
-                    <StackPanel Grid.Column="1" Margin="10,0,7,0" VerticalAlignment="Center" Spacing="-1">
-                        <StackPanel Orientation="Horizontal" Spacing="0">
-                            <TextBlock Text="Mac" FontSize="21" FontWeight="Bold" Foreground="#FFFFFFFF" />
-                            <TextBlock Text="Spoof" FontSize="21" FontWeight="Bold" Foreground="#FF468EF7" />
-                        </StackPanel>
-                        <TextBlock Text="Private connection identity controls"
-                                   FontSize="8.8"
-                                   Foreground="{StaticResource SecondaryTextBrush}" />
+                    <StackPanel Grid.Column="1"
+                                Margin="10,0,0,0"
+                                VerticalAlignment="Center"
+                                Spacing="-1">
+                        <TextBlock Text="MacSpoof"
+                                   FontSize="23"
+                                   FontWeight="Bold"
+                                   CharacterSpacing="-10" />
+                        <TextBlock Text="Private connection identity control"
+                                   FontSize="10.5"
+                                   Foreground="{StaticResource MutedInkBrush}" />
                     </StackPanel>
-
-                    <Border Grid.Column="2"
-                            Padding="8,5"
-                            MinWidth="76"
-                            CornerRadius="16"
-                            BorderBrush="#FF274051"
-                            BorderThickness="1"
-                            Background="#CC12202B"
-                            VerticalAlignment="Center">
-                        <StackPanel>
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <Ellipse x:Name="ReadyDotEllipse" Width="7" Height="7"
-                                         Fill="{StaticResource GreenBrush}"
-                                         VerticalAlignment="Center" />
-                                <TextBlock x:Name="ReadyStatusTextBlock"
-                                           Text="READY"
-                                           FontSize="10.5"
-                                           FontWeight="Bold"
-                                           Foreground="#FFF1F7FF" />
-                            </StackPanel>
-                            <TextBlock x:Name="ReadySubTextBlock"
-                                       Text="System prepared"
-                                       Margin="13,0,0,0"
-                                       FontSize="7.5"
-                                       Foreground="{StaticResource SecondaryTextBrush}" />
-                        </StackPanel>
-                    </Border>
                 </Grid>
 
-                <!-- Network Adapter -->
-                <Border Background="{StaticResource CardBrush}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="14"
-                        Padding="9">
-                    <StackPanel Spacing="7">
+                <!-- Network adapter card -->
+                <Border CornerRadius="13"
+                        BorderBrush="{StaticResource InkBrush}"
+                        BorderThickness="1.6"
+                        Background="{StaticResource PaperBrush}"
+                        Padding="11,9">
+                    <StackPanel Spacing="8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -288,337 +98,347 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <Image Width="24" Height="24" VerticalAlignment="Center">
+                            <Image Width="27" Height="27" VerticalAlignment="Center">
                                 <Image.Source>
                                     <SvgImageSource UriSource="ms-appx:///Assets/material-wifi.svg" />
                                 </Image.Source>
                             </Image>
-                            <StackPanel Grid.Column="1" Margin="9,0,0,0" VerticalAlignment="Center" Spacing="0">
-                                <TextBlock Text="Network Adapter" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextBrush}" />
-                                <TextBlock Text="Select the network interface to manage" FontSize="8" Foreground="{StaticResource SecondaryTextBrush}" />
+
+                            <StackPanel Grid.Column="1"
+                                        Margin="9,0,8,0"
+                                        VerticalAlignment="Center"
+                                        Spacing="-1">
+                                <TextBlock Text="Network Adapter"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="Select the network interface to manage"
+                                           FontSize="8.7"
+                                           Foreground="{StaticResource MutedInkBrush}" />
                             </StackPanel>
+
                             <Button x:Name="RefreshAdapterButton"
                                     Grid.Column="2"
-                                    Width="72"
-                                    Height="31"
-                                    Padding="7,0"
-                                    BorderBrush="#FF344B62"
-                                    BorderThickness="1"
-                                    Background="#FF172536"
+                                    Width="80"
+                                    Height="34"
+                                    Padding="8,0"
                                     Click="RefreshAdapterButton_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-                                    <Image Width="14" Height="14">
+                                    <Image Width="15" Height="15">
                                         <Image.Source>
                                             <SvgImageSource UriSource="ms-appx:///Assets/material-refresh.svg" />
                                         </Image.Source>
                                     </Image>
-                                    <TextBlock Text="Refresh" FontSize="9.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="Refresh"
+                                               FontSize="10"
+                                               FontWeight="SemiBold" />
                                 </StackPanel>
                             </Button>
                         </Grid>
 
                         <ComboBox x:Name="AdapterComboBox"
+                                  MinHeight="39"
+                                  Padding="8,2"
                                   HorizontalAlignment="Stretch"
-                                  MinHeight="40"
-                                  Padding="9,3"
-                                  Background="#FF0A141E"
-                                  BorderBrush="#FF36506A"
-                                  BorderThickness="1"
                                   SelectionChanged="AdapterComboBox_SelectionChanged">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Spacing="-1">
-                                        <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="SemiBold" Foreground="#FFF5F7FB" />
-                                        <TextBlock Text="{Binding Description}" FontSize="8.5" Foreground="{StaticResource SecondaryTextBrush}" TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
+                                    <TextBlock Text="{Binding Name}"
+                                               FontSize="10.5"
+                                               TextTrimming="CharacterEllipsis" />
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
+                    </StackPanel>
+                </Border>
 
-                        <Border CornerRadius="11"
-                                BorderBrush="#FF344D61"
-                                BorderThickness="1"
-                                Padding="8,7"
-                                Background="#D90B1721">
+                <!-- Current MAC -->
+                <Border CornerRadius="13"
+                        BorderBrush="{StaticResource InkBrush}"
+                        BorderThickness="1.6"
+                        Background="{StaticResource PaperBrush}"
+                        Padding="11,9">
+                    <StackPanel Spacing="7">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Image Width="21" Height="21">
+                                <Image.Source>
+                                    <SvgImageSource UriSource="ms-appx:///Assets/material-network.svg" />
+                                </Image.Source>
+                            </Image>
+                            <TextBlock Text="Current MAC Address"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <Border CornerRadius="10"
+                                BorderBrush="#FFB6B6B1"
+                                BorderThickness="1.2"
+                                Background="#FFFFFFFF"
+                                Padding="10,4">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <StackPanel Spacing="3">
-                                    <StackPanel Orientation="Horizontal" Spacing="6">
-                                        <Image Width="15" Height="15" VerticalAlignment="Center">
-                                            <Image.Source>
-                                                <SvgImageSource UriSource="ms-appx:///Assets/material-network.svg" />
-                                            </Image.Source>
-                                        </Image>
-                                        <TextBlock Text="Current MAC Address" FontSize="10.5" Foreground="#FFD9E3F0" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                    <TextBlock x:Name="CurrentMacTextBlock"
-                                               Text="Loading..."
-                                               FontSize="19"
-                                               FontWeight="Bold"
-                                               CharacterSpacing="18"
-                                               Foreground="#FFFFFFFF" />
-                                    <TextBlock x:Name="CurrentAdapterDescriptionTextBlock"
-                                               Text="Network adapter"
-                                               FontSize="8.5"
-                                               Foreground="{StaticResource SecondaryTextBrush}"
-                                               TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
 
-                                <StackPanel Grid.Column="1" HorizontalAlignment="Right" Spacing="9">
-                                    <Border Padding="8,4" CornerRadius="12"
-                                            Background="#D60B3D2A"
-                                            BorderBrush="#FF145D3A"
-                                            BorderThickness="1">
-                                        <StackPanel Orientation="Horizontal" Spacing="5">
-                                            <Ellipse Width="6" Height="6" Fill="{StaticResource GreenBrush}" VerticalAlignment="Center" />
-                                            <TextBlock x:Name="MacStatusTextBlock"
-                                                       Text="ACTIVE"
-                                                       FontSize="8.5"
-                                                       FontWeight="Bold"
-                                                       Foreground="{StaticResource GreenBrush}" />
-                                        </StackPanel>
-                                    </Border>
-                                    <Image Width="42" Height="42" Opacity="0.66">
-                                        <Image.Source>
-                                            <SvgImageSource UriSource="ms-appx:///Assets/material-settings-ethernet.svg" />
-                                        </Image.Source>
-                                    </Image>
-                                </StackPanel>
+                                <TextBlock x:Name="CurrentMacTextBlock"
+                                           Text="Loading..."
+                                           FontSize="20"
+                                           FontWeight="Bold"
+                                           CharacterSpacing="5"
+                                           VerticalAlignment="Center" />
+
+                                <Button x:Name="CopyMacButton"
+                                        Grid.Column="1"
+                                        Width="39"
+                                        Height="34"
+                                        Padding="0"
+                                        ToolTipService.ToolTip="Copy MAC address"
+                                        Click="CopyMacButton_Click">
+                                    <FontIcon FontFamily="Segoe Fluent Icons"
+                                              Glyph="&#xE8C8;"
+                                              FontSize="17" />
+                                </Button>
                             </Grid>
                         </Border>
                     </StackPanel>
                 </Border>
 
-                <!-- Spoof Configuration -->
-                <Border Background="{StaticResource CardBrush}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="14"
-                        Padding="9">
-                    <StackPanel Spacing="7">
+                <!-- Spoof configuration -->
+                <Border CornerRadius="13"
+                        BorderBrush="{StaticResource InkBrush}"
+                        BorderThickness="1.6"
+                        Background="{StaticResource PaperBrush}"
+                        Padding="11,9">
+                    <StackPanel Spacing="8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
-                            <Image Width="20" Height="20" VerticalAlignment="Center">
+
+                            <Image Width="22" Height="22" VerticalAlignment="Center">
                                 <Image.Source>
-                                    <SvgImageSource UriSource="ms-appx:///Assets/material-sync.svg" />
+                                    <SvgImageSource UriSource="ms-appx:///Assets/material-settings.svg" />
                                 </Image.Source>
                             </Image>
-                            <StackPanel Grid.Column="1" Margin="8,0,0,0" Spacing="0">
-                                <TextBlock Text="Spoof Configuration" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource TextBrush}" />
-                                <TextBlock Text="Choose how often to run the spoof" FontSize="8.5" Foreground="{StaticResource SecondaryTextBrush}" />
+
+                            <StackPanel Grid.Column="1" Margin="9,0,0,0" Spacing="-1">
+                                <TextBlock Text="Spoof Configuration"
+                                           FontSize="13.5"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="Choose how to run the spoof"
+                                           FontSize="8.7"
+                                           Foreground="{StaticResource MutedInkBrush}" />
                             </StackPanel>
                         </Grid>
 
-                        <Grid ColumnSpacing="6">
+                        <Grid ColumnSpacing="8">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
                             <Button x:Name="OnceModeButton"
                                     Height="66"
-                                    Padding="5"
-                                    BorderBrush="#FF3E9DFF"
-                                    BorderThickness="1.5"
-                                    Background="{StaticResource SelectedTileBrush}"
+                                    Padding="9,5"
+                                    Background="{StaticResource SoftPaperBrush}"
+                                    BorderThickness="1.8"
                                     Click="OnceModeButton_Click">
-                                <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                    <Image Width="22" Height="22">
-                                        <Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-play.svg" /></Image.Source>
-                                    </Image>
-                                    <TextBlock Text="Once" FontSize="9.5" FontWeight="Bold" HorizontalAlignment="Center" />
-                                    <TextBlock Text="Run manually" FontSize="7.5" Foreground="#FF4F93FF" HorizontalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="30" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
 
-                            <Button x:Name="RestartModeButton"
-                                    Grid.Column="1"
-                                    Height="66"
-                                    Padding="5"
-                                    BorderBrush="#FF2C4054"
-                                    BorderThickness="1"
-                                    Background="#FF0D1824"
-                                    Click="RestartModeButton_Click">
-                                <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                    <Image Width="22" Height="22">
-                                        <Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-schedule.svg" /></Image.Source>
-                                    </Image>
-                                    <TextBlock Text="Every Restart" FontSize="8.7" FontWeight="Bold" HorizontalAlignment="Center" />
-                                    <TextBlock Text="Run at startup" FontSize="7.2" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
+                                    <Grid Width="17" Height="17" VerticalAlignment="Center">
+                                        <Ellipse Stroke="{StaticResource InkBrush}" StrokeThickness="1.5" />
+                                        <Ellipse x:Name="OnceRadioDot"
+                                                 Width="8"
+                                                 Height="8"
+                                                 Fill="{StaticResource InkBrush}" />
+                                    </Grid>
 
-                            <Button x:Name="RotateModeButton"
-                                    Grid.Column="2"
-                                    Height="66"
-                                    Padding="5"
-                                    BorderBrush="#FF2C4054"
-                                    BorderThickness="1"
-                                    Background="#FF0D1824"
-                                    Click="RotateModeButton_Click">
-                                <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                    <Image Width="22" Height="22">
-                                        <Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-sync.svg" /></Image.Source>
+                                    <Image Grid.Column="1" Width="23" Height="23" VerticalAlignment="Center">
+                                        <Image.Source>
+                                            <SvgImageSource UriSource="ms-appx:///Assets/material-play.svg" />
+                                        </Image.Source>
                                     </Image>
-                                    <TextBlock Text="Rotate" FontSize="9.2" FontWeight="Bold" HorizontalAlignment="Center" />
-                                    <TextBlock Text="Auto change" FontSize="7.2" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                                </StackPanel>
+
+                                    <StackPanel Grid.Column="2"
+                                                Margin="5,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Spacing="-1">
+                                        <TextBlock Text="Once" FontSize="11.5" FontWeight="SemiBold" />
+                                        <TextBlock Text="Run manually" FontSize="8.2" Foreground="{StaticResource MutedInkBrush}" />
+                                    </StackPanel>
+                                </Grid>
                             </Button>
 
                             <Button x:Name="CustomModeButton"
-                                    Grid.Column="3"
+                                    Grid.Column="1"
                                     Height="66"
-                                    Padding="5"
-                                    BorderBrush="#FF2C4054"
-                                    BorderThickness="1"
-                                    Background="#FF0D1824"
+                                    Padding="9,5"
                                     Click="CustomModeButton_Click">
-                                <StackPanel HorizontalAlignment="Center" Spacing="4">
-                                    <Image Width="22" Height="22">
-                                        <Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-calendar.svg" /></Image.Source>
+                                <Button.Flyout>
+                                    <Flyout Placement="Bottom">
+                                        <StackPanel Width="160" Spacing="6">
+                                            <TextBlock Text="Custom interval"
+                                                       FontSize="10.5"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="Choose how often the MAC changes."
+                                                       FontSize="8.2"
+                                                       Foreground="{StaticResource MutedInkBrush}"
+                                                       TextWrapping="Wrap" />
+                                            <ComboBox x:Name="ConfigurationComboBox"
+                                                      MinHeight="32"
+                                                      HorizontalAlignment="Stretch"
+                                                      SelectedIndex="2"
+                                                      SelectionChanged="ConfigurationComboBox_SelectionChanged">
+                                                <ComboBoxItem Content="5 Minutes" />
+                                                <ComboBoxItem Content="10 Minutes" />
+                                                <ComboBoxItem Content="15 Minutes" />
+                                                <ComboBoxItem Content="30 Minutes" />
+                                                <ComboBoxItem Content="1 Hour" />
+                                                <ComboBoxItem Content="12 Hours" />
+                                                <ComboBoxItem Content="24 Hours" />
+                                            </ComboBox>
+                                        </StackPanel>
+                                    </Flyout>
+                                </Button.Flyout>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="28" />
+                                        <ColumnDefinition Width="30" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <Grid Width="17" Height="17" VerticalAlignment="Center">
+                                        <Ellipse Stroke="{StaticResource InkBrush}" StrokeThickness="1.5" />
+                                        <Ellipse x:Name="CustomRadioDot"
+                                                 Width="8"
+                                                 Height="8"
+                                                 Fill="Transparent" />
+                                    </Grid>
+
+                                    <Image Grid.Column="1" Width="24" Height="24" VerticalAlignment="Center">
+                                        <Image.Source>
+                                            <SvgImageSource UriSource="ms-appx:///Assets/material-settings.svg" />
+                                        </Image.Source>
                                     </Image>
-                                    <TextBlock Text="Custom" FontSize="9.2" FontWeight="Bold" HorizontalAlignment="Center" />
-                                    <TextBlock Text="Set interval" FontSize="7.2" Foreground="{StaticResource SecondaryTextBrush}" HorizontalAlignment="Center" />
-                                </StackPanel>
+
+                                    <StackPanel Grid.Column="2"
+                                                Margin="5,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Spacing="-1">
+                                        <TextBlock Text="Custom" FontSize="11.5" FontWeight="SemiBold" />
+                                        <TextBlock Text="Set interval" FontSize="8.2" Foreground="{StaticResource MutedInkBrush}" />
+                                    </StackPanel>
+                                </Grid>
                             </Button>
                         </Grid>
 
-                        <Border x:Name="CustomIntervalPanel"
-                                Visibility="Collapsed"
-                                Padding="8,6"
-                                CornerRadius="8"
-                                Background="#FF0A141E"
-                                BorderBrush="#FF2B4054"
-                                BorderThickness="1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Rotation interval" FontSize="8.5" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
-                                <ComboBox x:Name="ConfigurationComboBox"
-                                          Grid.Column="1"
-                                          Width="118"
-                                          SelectedIndex="2"
-                                          MinHeight="31"
-                                          Background="#FF0B1722"
-                                          BorderBrush="#FF304963"
-                                          SelectionChanged="ConfigurationComboBox_SelectionChanged">
-                                    <ComboBoxItem Content="5 Minutes" />
-                                    <ComboBoxItem Content="10 Minutes" />
-                                    <ComboBoxItem Content="15 Minutes" />
-                                    <ComboBoxItem Content="30 Minutes" />
-                                    <ComboBoxItem Content="1 Hour" />
-                                    <ComboBoxItem Content="12 Hours" />
-                                    <ComboBoxItem Content="24 Hours" />
-                                </ComboBox>
-                            </Grid>
-                        </Border>
-
                         <CheckBox x:Name="ClearCacheCheckBox"
                                   IsChecked="True"
-                                  FontSize="9"
-                                  Foreground="#FFDCE6F3">
-                            <StackPanel>
-                                <TextBlock Text="Refresh network caches after each change" FontSize="9.2" Foreground="#FFE5ECF6" />
-                                <TextBlock Text="Helps apply the new MAC address immediately" FontSize="7.4" Foreground="{StaticResource SecondaryTextBrush}" />
+                                  FontSize="9.7">
+                            <CheckBox.Resources>
+                                <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#FF111111" />
+                                <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#FF222222" />
+                                <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#FF000000" />
+                                <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#FFFFFFFF" />
+                                <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#FFFFFFFF" />
+                                <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#FFFFFFFF" />
+                            </CheckBox.Resources>
+                            <StackPanel Spacing="-1">
+                                <TextBlock Text="Refresh network caches after each change"
+                                           FontSize="9.7" />
+                                <TextBlock Text="Helps apply the new MAC address immediately"
+                                           FontSize="7.9"
+                                           Foreground="{StaticResource MutedInkBrush}" />
                             </StackPanel>
                         </CheckBox>
                     </StackPanel>
                 </Border>
 
-                <!-- Primary action -->
+                <!-- Main action -->
                 <Button x:Name="ActionButton"
-                        Height="40"
+                        Height="45"
                         HorizontalAlignment="Stretch"
-                        Background="{StaticResource PrimaryActionBrush}"
-                        BorderBrush="#FF56D7FF"
-                        BorderThickness="1"
-                        Foreground="White"
+                        Background="{StaticResource SoftPaperBrush}"
+                        BorderThickness="1.9"
                         Click="ActionButton_Click">
-                    <Grid HorizontalAlignment="Stretch">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Image x:Name="ActionButtonImage"
-                               Grid.Column="0"
-                               Width="18"
-                               Height="18"
-                               HorizontalAlignment="Right"
-                               Margin="0,0,10,0">
-                            <Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-play.svg" /></Image.Source>
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <Image Width="20" Height="20">
+                            <Image.Source>
+                                <SvgImageSource UriSource="ms-appx:///Assets/material-play.svg" />
+                            </Image.Source>
                         </Image>
                         <TextBlock x:Name="ActionButtonText"
-                                   Grid.Column="1"
                                    Text="RUN SPOOF"
-                                   FontSize="13.5"
-                                   FontWeight="Bold"
-                                   VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="›"
-                                   FontSize="23"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
-                                   Margin="0,-2,5,0" />
-                    </Grid>
+                                   FontSize="14"
+                                   FontWeight="Bold" />
+                    </StackPanel>
                 </Button>
 
+                <!-- Secondary actions -->
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
+
                     <Button x:Name="ClearCacheButton"
-                            Height="33"
-                            Background="#FF111E2A"
-                            BorderBrush="#FF2E4459"
-                            BorderThickness="1"
-                            Foreground="{StaticResource TextBrush}"
+                            Height="38"
                             Click="ClearCacheButton_Click">
                         <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                            <Image Width="15" Height="15"><Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-clean.svg" /></Image.Source></Image>
-                            <TextBlock Text="Clear Cache" FontSize="9.2" FontWeight="SemiBold" />
+                            <Image Width="16" Height="16">
+                                <Image.Source>
+                                    <SvgImageSource UriSource="ms-appx:///Assets/material-clean.svg" />
+                                </Image.Source>
+                            </Image>
+                            <TextBlock Text="Clear Cache" FontSize="10" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
+
                     <Button x:Name="RestoreButton"
                             Grid.Column="1"
-                            Height="33"
-                            Background="#FF111E2A"
-                            BorderBrush="#FF2E4459"
-                            BorderThickness="1"
-                            Foreground="{StaticResource TextBrush}"
+                            Height="38"
                             Click="RestoreButton_Click">
                         <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
-                            <Image Width="15" Height="15"><Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-restore.svg" /></Image.Source></Image>
-                            <TextBlock Text="Restore Original MAC" FontSize="8.8" FontWeight="SemiBold" />
+                            <Image Width="16" Height="16">
+                                <Image.Source>
+                                    <SvgImageSource UriSource="ms-appx:///Assets/material-restore.svg" />
+                                </Image.Source>
+                            </Image>
+                            <TextBlock Text="Restore Original MAC"
+                                       FontSize="9.5"
+                                       FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
                 </Grid>
 
                 <!-- Adapter information -->
-                <Border Background="{StaticResource CardBrush}"
-                        BorderBrush="{StaticResource CardBorderBrush}"
-                        BorderThickness="1"
-                        CornerRadius="12"
-                        Padding="8,6">
-                    <StackPanel Spacing="4">
+                <Border CornerRadius="13"
+                        BorderBrush="{StaticResource InkBrush}"
+                        BorderThickness="1.6"
+                        Background="{StaticResource PaperBrush}"
+                        Padding="11,8">
+                    <StackPanel Spacing="7">
                         <StackPanel Orientation="Horizontal" Spacing="7">
-                            <Image Width="15" Height="15"><Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-info.svg" /></Image.Source></Image>
-                            <TextBlock Text="Adapter Information" FontSize="10.2" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}" />
+                            <Image Width="18" Height="18">
+                                <Image.Source>
+                                    <SvgImageSource UriSource="ms-appx:///Assets/material-info.svg" />
+                                </Image.Source>
+                            </Image>
+                            <TextBlock Text="Adapter Information"
+                                       FontSize="12"
+                                       FontWeight="SemiBold" />
                         </StackPanel>
 
-                        <Grid Margin="13,0,0,0" RowSpacing="2">
+                        <Grid Margin="23,0,0,0" RowSpacing="4">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="92" />
+                                <ColumnDefinition Width="98" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
@@ -626,70 +446,49 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Name" FontSize="8" Foreground="{StaticResource SecondaryTextBrush}" />
-                            <TextBlock x:Name="AdapterNameTextBlock" Grid.Column="1" Text="—" FontSize="8.4" Foreground="#FFE0E8F3" />
+                            <TextBlock Text="Name" FontSize="9" />
+                            <TextBlock x:Name="AdapterNameTextBlock"
+                                       Grid.Column="1"
+                                       Text="—"
+                                       FontSize="9" />
 
-                            <TextBlock Grid.Row="1" Text="Description" FontSize="8" Foreground="{StaticResource SecondaryTextBrush}" />
-                            <TextBlock x:Name="AdapterDescriptionTextBlock" Grid.Row="1" Grid.Column="1" Text="—" FontSize="8.4" Foreground="#FFE0E8F3" TextTrimming="CharacterEllipsis" />
-
-                            <TextBlock Grid.Row="2" Text="Status" FontSize="8" Foreground="{StaticResource SecondaryTextBrush}" />
-                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="5">
-                                <Ellipse x:Name="AdapterStatusDot" Width="6" Height="6" Fill="{StaticResource GreenBrush}" VerticalAlignment="Center" />
-                                <TextBlock x:Name="AdapterStatusTextBlock" Text="Connected" FontSize="8.4" Foreground="#FFE0E8F3" />
+                            <TextBlock Grid.Row="1" Text="Status" FontSize="9" />
+                            <StackPanel Grid.Row="1"
+                                        Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="5">
+                                <Ellipse x:Name="AdapterStatusDot"
+                                         Width="6"
+                                         Height="6"
+                                         Fill="{StaticResource InkBrush}"
+                                         VerticalAlignment="Center" />
+                                <TextBlock x:Name="AdapterStatusTextBlock"
+                                           Text="Connected"
+                                           FontSize="9" />
                             </StackPanel>
 
-                            <TextBlock Grid.Row="3" Text="Link Speed" FontSize="8" Foreground="{StaticResource SecondaryTextBrush}" />
-                            <TextBlock x:Name="AdapterSpeedTextBlock" Grid.Row="3" Grid.Column="1" Text="—" FontSize="8.4" Foreground="#FFE0E8F3" />
+                            <TextBlock Grid.Row="2" Text="Link Speed" FontSize="9" />
+                            <TextBlock x:Name="AdapterSpeedTextBlock"
+                                       Grid.Row="2"
+                                       Grid.Column="1"
+                                       Text="—"
+                                       FontSize="9" />
 
-                            <TextBlock Grid.Row="4" Text="Driver Version" FontSize="8" Foreground="{StaticResource SecondaryTextBrush}" />
-                            <TextBlock x:Name="AdapterDriverTextBlock" Grid.Row="4" Grid.Column="1" Text="Windows managed" FontSize="8.4" Foreground="#FFE0E8F3" />
+                            <TextBlock Grid.Row="3" Text="Driver Version" FontSize="9" />
+                            <TextBlock x:Name="AdapterDriverTextBlock"
+                                       Grid.Row="3"
+                                       Grid.Column="1"
+                                       Text="Windows managed"
+                                       FontSize="9" />
                         </Grid>
                     </StackPanel>
                 </Border>
 
-                <Border Padding="4,2"
-                        CornerRadius="8"
-                        Background="#A60A141E"
-                        BorderBrush="#FF213344"
-                        BorderThickness="1">
-                    <TextBlock x:Name="StatusTextBlock"
-                               Text="Ready. MAC changes briefly disconnect the adapter."
-                               FontSize="6.9"
-                               MaxLines="1"
-                               TextWrapping="Wrap"
-                               Foreground="{StaticResource SecondaryTextBrush}" />
-                </Border>
-
-                <Grid Margin="1,0,1,2">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="HelpButton"
-                            Grid.Column="1"
-                            Padding="6,3"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Click="HelpButton_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <Image Width="13" Height="13"><Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-help.svg" /></Image.Source></Image>
-                            <TextBlock Text="Help" FontSize="8.4" Foreground="{StaticResource SecondaryTextBrush}" />
-                        </StackPanel>
-                    </Button>
-                    <CheckBox x:Name="StartupCheckBox"
-                              Grid.Column="2"
-                              Margin="7,0,0,0"
-                              Click="StartupCheckBox_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <Image Width="13" Height="13"><Image.Source><SvgImageSource UriSource="ms-appx:///Assets/material-startup.svg" /></Image.Source></Image>
-                            <TextBlock Text="Open at Startup" FontSize="8.4" Foreground="{StaticResource SecondaryTextBrush}" />
-                        </StackPanel>
-                    </CheckBox>
-                </Grid>
+                <TextBlock x:Name="StatusTextBlock"
+                           Visibility="Collapsed"
+                           Text="Ready." />
             </StackPanel>
         </ScrollViewer>
     </Grid>
