@@ -7,8 +7,9 @@
     <AssemblyName>MacSpoof</AssemblyName>
     <AssemblyTitle>MacSpoof</AssemblyTitle>
     <Product>MacSpoof</Product>
-    <Company>Zhi</Company>
-    <Authors>Zhi</Authors>
+    <Description>Lightweight Windows MAC address manager and connection identity rotator.</Description>
+    <Company>Koshi</Company>
+    <Authors>Koshi</Authors>
     <Version>1.4.1</Version>
     <ApplicationIcon>Assets\MacIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>

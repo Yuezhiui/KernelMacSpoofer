@@ -87,7 +87,7 @@ jobs:
             '- License: Apache License 2.0'
             ''
             'The Material Symbols artwork remains subject to its original Apache 2.0 license.'
-            "MacSpoof's own source code remains licensed under the repository's MIT License."
+            "MacSpoof's own source code remains licensed under the repository's MIT License by Koshi."
           ) | Set-Content artifacts/THIRD_PARTY_NOTICES.md -Encoding utf8
 
           $portableDir = Join-Path $env:RUNNER_TEMP "MacSpoof-portable-$env:GITHUB_RUN_ID"
@@ -112,7 +112,7 @@ jobs:
           AppId=KernelMacSpoofer
           AppName=MacSpoof
           AppVersion=$env:MACSPOOF_VERSION
-          AppPublisher=Zhi
+          AppPublisher=Koshi
           AppPublisherURL=https://github.com/Yuezhiui/KernelMacSpoofer
           AppSupportURL=https://github.com/Yuezhiui/KernelMacSpoofer/issues
           AppUpdatesURL=https://github.com/Yuezhiui/KernelMacSpoofer/releases
@@ -133,8 +133,8 @@ jobs:
           WizardStyle=modern
           CloseApplications=yes
           RestartApplications=no
-          VersionInfoCompany=Zhi
-          VersionInfoDescription=MacSpoof Windows installer
+          VersionInfoCompany=Koshi
+          VersionInfoDescription=MacSpoof - Windows MAC address manager
           VersionInfoProductName=MacSpoof
           VersionInfoProductVersion=$env:MACSPOOF_VERSION
 

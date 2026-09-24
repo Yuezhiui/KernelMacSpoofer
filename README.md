@@ -1,6 +1,6 @@
 # MacSpoof
 
-A compact native Windows MAC address manager and automated connection identity rotator built with WinUI 3 and .NET 8, featuring a monochrome sketch-style interface and official MacSpoof branding.
+A lightweight native Windows MAC address manager and connection identity rotator built with WinUI 3 and .NET 8, featuring a clean sketch-style interface, adapter recovery safeguards, and official MacSpoof branding.
 
 Features a modern WinUI 3 interface, Material Symbols-derived icon assets, and direct Windows registry-level network adapter management.
 
@@ -83,12 +83,12 @@ MacSpoof/
 
 ## License
 
-MIT — Copyright (c) 2026 Zhi  
+MIT — Copyright (c) 2026 Koshi
 See [LICENSE](LICENSE) for full text.
 
 ### UI icon attribution
 
-The refreshed interface uses SVG icon assets derived from [Google Material Symbols](https://fonts.google.com/icons). Material Symbols are provided by Google under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Those third-party icon assets retain their Apache 2.0 license; MacSpoof's own source code remains licensed under MIT by Zhi. Release packaging writes the third-party notice under `artifacts/` and includes it with the portable release.
+The refreshed interface uses SVG icon assets derived from [Google Material Symbols](https://fonts.google.com/icons). Material Symbols are provided by Google under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Those third-party icon assets retain their Apache 2.0 license; MacSpoof's own source code remains licensed under MIT by Koshi. Release packaging writes the third-party notice under `artifacts/` and includes it with the portable release.
 
 
 ## Connection reliability and cache cleanup
