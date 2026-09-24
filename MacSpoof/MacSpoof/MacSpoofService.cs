@@ -47,6 +47,30 @@ namespace MacSpoof
         private static NetworkInterface? FindAdapter(string id) => GetAdapters().FirstOrDefault(n => n.Id == id);
         public static string GetCurrentMacAddress(string id) => FormatMacAddress(FindAdapter(id)?.GetPhysicalAddress().ToString() ?? "");
 
+        public static string GetAdapterDriverVersion(string id)
+        {
+            try
+            {
+                using var root = Registry.LocalMachine.OpenSubKey(NetworkClassRegistryKey);
+                if (root == null) return "Windows managed";
+
+                foreach (string name in root.GetSubKeyNames())
+                {
+                    if (name.Length != 4 || !int.TryParse(name, out _)) continue;
+                    using var key = root.OpenSubKey(name);
+                    if (Guid.TryParse(key?.GetValue("NetCfgInstanceId")?.ToString(), out var candidate)
+                        && Guid.TryParse(id, out var target) && candidate == target)
+                        return key?.GetValue("DriverVersion")?.ToString() ?? "Windows managed";
+                }
+            }
+            catch
+            {
+                // Adapter metadata is informational only; never block core network operations for it.
+            }
+
+            return "Windows managed";
+        }
+
         internal static string? GetRollbackExpectedMac(object? registryValue)
         {
             if (registryValue is not string value) return null;

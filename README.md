@@ -105,9 +105,9 @@ Command references: [Microsoft ipconfig documentation](https://learn.microsoft.c
 Non-disruptive checks: `dotnet run --project tests/MacSpoof.Checks`. These cover generated addresses, validation, formatting, rollback expectations, usable-IP state, safe command argument construction, partial cache-warning behavior, and missing adapters. They do not perform live registry writes or adapter restarts; hardware testing is still required.
 
 
-## Windows installer and portable release (v1.2.0)
+## Windows installer and portable release (v1.3.0)
 
-Download `MacSpoof-Setup-v1.2.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use the portable `MacSpoof-v1.2.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
+Download `MacSpoof-Setup-v1.3.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use the portable `MacSpoof-v1.3.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
 
 The installer contains the self-contained Windows x64 app; an optional desktop shortcut and Windows uninstall entry are included. No network settings are changed by installation or uninstallation. Use Restore default MAC inside the app before uninstalling if you want to remove an applied override. This is a Windows application, not a macOS application.
 

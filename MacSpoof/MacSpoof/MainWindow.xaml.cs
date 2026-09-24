@@ -1,7 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
@@ -24,10 +26,29 @@ namespace MacSpoof
         private bool _allowClose;
         private bool _isClosed;
         private string _lastMacAddress = "Unknown";
+        private SpoofMode _selectedMode = SpoofMode.Once;
         private TrayIconManager? _trayManager;
+        private const string StartupRunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+        private const string SettingsKey = @"Software\MacSpoof";
+        private const string StartupValueName = "MacSpoof";
+        private const string SpoofAtStartupValueName = "SpoofAtStartup";
 
-        private readonly SolidColorBrush _runBrush = new(Windows.UI.Color.FromArgb(255, 109, 140, 255));
+        private readonly SolidColorBrush _tileBrush = new(Windows.UI.Color.FromArgb(255, 13, 24, 36));
+        private readonly SolidColorBrush _selectedTileBrush = new(Windows.UI.Color.FromArgb(255, 16, 47, 86));
+        private readonly SolidColorBrush _tileBorderBrush = new(Windows.UI.Color.FromArgb(255, 44, 64, 84));
+        private readonly SolidColorBrush _selectedTileBorderBrush = new(Windows.UI.Color.FromArgb(255, 62, 157, 255));
         private readonly SolidColorBrush _stopBrush = new(Windows.UI.Color.FromArgb(255, 224, 95, 95));
+        private readonly SolidColorBrush _readyBrush = new(Windows.UI.Color.FromArgb(255, 44, 240, 112));
+        private readonly SolidColorBrush _workingBrush = new(Windows.UI.Color.FromArgb(255, 54, 199, 255));
+        private readonly SolidColorBrush _mutedBrush = new(Windows.UI.Color.FromArgb(255, 115, 134, 159));
+
+        private enum SpoofMode
+        {
+            Once,
+            Restart,
+            Rotate,
+            Custom
+        }
 
         public bool IsNetworkOperationRunning => _operationInProgress;
         public string CurrentMacAddress => _lastMacAddress;
@@ -61,6 +82,8 @@ namespace MacSpoof
             _exitTimer.Tick += ExitTimer_Tick;
 
             RefreshAdapters(preserveSelection: false);
+            SelectMode(IsSpoofAtStartupEnabled() ? SpoofMode.Restart : SpoofMode.Once, updateStatus: false);
+            StartupCheckBox.IsChecked = IsStartupEnabled();
 
             try
             {
@@ -76,6 +99,18 @@ namespace MacSpoof
             AppWindow.Closing += AppWindow_Closing;
             Closed += MainWindow_Closed;
             _pollTimer.Start();
+
+            DispatcherQueue.TryEnqueue(() => MainScrollViewer.ChangeView(null, 0, null, true));
+
+            if (IsStartupLaunch() && IsSpoofAtStartupEnabled())
+            {
+                DispatcherQueue.TryEnqueue(async () =>
+                {
+                    await Task.Delay(800);
+                    if (!_isClosed && HasSelectedAdapter)
+                        await ExecuteOnceWithCooldownAsync();
+                });
+            }
         }
 
         private void SetFixedSize()
@@ -119,6 +154,7 @@ namespace MacSpoof
                 }
 
                 LoadCurrentMacAddress();
+                UpdateAdapterInformation();
                 UpdateControlAvailability();
             }
             catch (Exception ex)
@@ -140,6 +176,10 @@ namespace MacSpoof
                 _lastMacAddress = formattedMac;
                 CurrentMacTextBlock.Text = formattedMac;
                 MacStatusTextBlock.Text = formattedMac == "Unknown" ? "UNAVAILABLE" : "ACTIVE";
+                CurrentAdapterDescriptionTextBlock.Text = (AdapterComboBox.SelectedItem as NetworkInterface)?.Description ?? "Network adapter";
+                SetReadyState(formattedMac == "Unknown" ? "CHECK" : "READY",
+                    formattedMac == "Unknown" ? "Adapter unavailable" : "System prepared",
+                    formattedMac == "Unknown" ? _mutedBrush : _readyBrush);
                 _trayManager?.UpdateTooltip($"MacSpoof: {formattedMac}");
             }
             catch (Exception ex)
@@ -148,6 +188,7 @@ namespace MacSpoof
                 _lastMacAddress = "Unknown";
                 CurrentMacTextBlock.Text = "Unknown";
                 MacStatusTextBlock.Text = "UNAVAILABLE";
+                SetReadyState("CHECK", "Adapter unavailable", _mutedBrush);
                 _trayManager?.UpdateTooltip("MacSpoof: unavailable");
             }
         }
@@ -161,9 +202,14 @@ namespace MacSpoof
             AdapterComboBox.IsEnabled = controlsAvailable && !_isRunning;
             RefreshAdapterButton.IsEnabled = controlsAvailable && !_isRunning;
             ConfigurationComboBox.IsEnabled = controlsAvailable;
+            OnceModeButton.IsEnabled = controlsAvailable && !_isRunning;
+            RestartModeButton.IsEnabled = controlsAvailable && !_isRunning;
+            RotateModeButton.IsEnabled = controlsAvailable || _isRunning;
+            CustomModeButton.IsEnabled = controlsAvailable || _isRunning;
             RestoreButton.IsEnabled = hasAdapter && controlsAvailable;
             ClearCacheButton.IsEnabled = hasAdapter && controlsAvailable;
             ClearCacheCheckBox.IsEnabled = controlsAvailable;
+            StartupCheckBox.IsEnabled = controlsAvailable;
         }
 
         private async Task RandomizeMacAddressAsync()
@@ -177,14 +223,17 @@ namespace MacSpoof
             if (_operationInProgress || _exitPending || !HasSelectedAdapter)
                 return;
 
+            bool operationSucceeded = false;
             _operationInProgress = true;
             _rotateTimer.Stop();
             UpdateControlAvailability();
             StatusTextBlock.Text = "Working; the adapter may briefly disconnect...";
+            SetReadyState("WORKING", "Applying network change", _workingBrush);
 
             try
             {
                 NetworkResult result = await operation();
+                operationSucceeded = result.Success;
                 StatusTextBlock.Text = result.Message;
                 if (!result.Success)
                     StopLoop();
@@ -198,6 +247,11 @@ namespace MacSpoof
             finally
             {
                 _operationInProgress = false;
+                SetReadyState(
+                    !HasSelectedAdapter || !operationSucceeded ? "CHECK" : "READY",
+                    !HasSelectedAdapter ? "Select an adapter" :
+                    operationSucceeded ? "System prepared" : "Attention required",
+                    !HasSelectedAdapter || !operationSucceeded ? _mutedBrush : _readyBrush);
                 UpdateControlAvailability();
                 if (_isRunning && !_exitPending)
                     _rotateTimer.Start();
@@ -237,6 +291,7 @@ namespace MacSpoof
                 return;
 
             LoadCurrentMacAddress();
+            UpdateAdapterInformation();
             UpdateControlAvailability();
         }
 
@@ -245,11 +300,9 @@ namespace MacSpoof
             if (_cooldownSecondsLeft > 0 || _operationInProgress || _exitPending || !HasSelectedAdapter)
                 return;
 
-            int selectedIndex = ConfigurationComboBox.SelectedIndex;
             string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString()?.Trim();
-            bool isOnce = selectedIndex == 0 || string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase);
 
-            if (isOnce)
+            if (_selectedMode is SpoofMode.Once or SpoofMode.Restart)
             {
                 _isRunning = false;
                 _rotateTimer.Stop();
@@ -257,7 +310,7 @@ namespace MacSpoof
             }
             else if (!_isRunning)
             {
-                await StartLoopAsync(selectedStr);
+                await StartLoopAsync(_selectedMode == SpoofMode.Rotate ? "15 Minutes" : selectedStr);
             }
             else
             {
@@ -279,9 +332,7 @@ namespace MacSpoof
             _rotateTimer.Stop();
 
             ActionButton.IsEnabled = false;
-            ActionButton.Background = _runBrush;
             ActionButtonText.Text = "SPOOFING...";
-            ActionButtonIcon.Glyph = "\uE895";
 
             await RandomizeMacAddressAsync();
 
@@ -290,7 +341,6 @@ namespace MacSpoof
 
             _cooldownSecondsLeft = 5;
             ActionButtonText.Text = $"COOLDOWN ({_cooldownSecondsLeft}s)";
-            ActionButtonIcon.Glyph = "\uE823";
             _cooldownTimer.Start();
             UpdateControlAvailability();
         }
@@ -307,8 +357,7 @@ namespace MacSpoof
             _cooldownTimer.Stop();
             _cooldownSecondsLeft = 0;
             ActionButtonText.Text = "RUN SPOOF";
-            ActionButtonIcon.Glyph = "\uE768";
-            ActionButton.Background = _runBrush;
+            RestorePrimaryActionBrush();
             UpdateControlAvailability();
         }
 
@@ -316,7 +365,6 @@ namespace MacSpoof
         {
             _isRunning = true;
             ActionButtonText.Text = "STOP ROTATION";
-            ActionButtonIcon.Glyph = "\uE71A";
             ActionButton.Background = _stopBrush;
             _rotateTimer.Interval = ParseDuration(durationStr);
             UpdateControlAvailability();
@@ -329,8 +377,7 @@ namespace MacSpoof
             _isRunning = false;
             _rotateTimer.Stop();
             ActionButtonText.Text = "RUN SPOOF";
-            ActionButtonIcon.Glyph = "\uE768";
-            ActionButton.Background = _runBrush;
+            RestorePrimaryActionBrush();
             UpdateControlAvailability();
         }
 
@@ -347,18 +394,219 @@ namespace MacSpoof
 
         private void ConfigurationComboBox_SelectionChanged(object sender, Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs e)
         {
-            int selectedIndex = ConfigurationComboBox.SelectedIndex;
             string? selectedStr = (ConfigurationComboBox.SelectedItem as Microsoft.UI.Xaml.Controls.ComboBoxItem)?.Content.ToString()?.Trim();
-            bool isOnce = selectedIndex == 0 || string.Equals(selectedStr, "Once", StringComparison.OrdinalIgnoreCase);
 
-            if (_isRunning)
+            if (_isRunning && _selectedMode == SpoofMode.Custom)
+                _rotateTimer.Interval = ParseDuration(selectedStr);
+        }
+
+        private void OnceModeButton_Click(object sender, RoutedEventArgs e) => SelectMode(SpoofMode.Once);
+
+        private void RestartModeButton_Click(object sender, RoutedEventArgs e) => SelectMode(SpoofMode.Restart);
+
+        private void RotateModeButton_Click(object sender, RoutedEventArgs e) => SelectMode(SpoofMode.Rotate);
+
+        private void CustomModeButton_Click(object sender, RoutedEventArgs e) => SelectMode(SpoofMode.Custom);
+
+        private void SelectMode(SpoofMode mode, bool updateStatus = true)
+        {
+            if (_isRunning && mode != _selectedMode)
+                StopLoop();
+
+            _selectedMode = mode;
+
+            StyleModeButton(OnceModeButton, mode == SpoofMode.Once);
+            StyleModeButton(RestartModeButton, mode == SpoofMode.Restart);
+            StyleModeButton(RotateModeButton, mode == SpoofMode.Rotate);
+            StyleModeButton(CustomModeButton, mode == SpoofMode.Custom);
+
+            CustomIntervalPanel.Visibility = mode == SpoofMode.Custom ? Visibility.Visible : Visibility.Collapsed;
+
+            if (mode == SpoofMode.Restart)
             {
-                if (isOnce)
-                    StopLoop();
-                else
-                    _rotateTimer.Interval = ParseDuration(selectedStr);
+                SetSpoofAtStartupEnabled(true);
+                if (StartupCheckBox.IsChecked != true)
+                {
+                    StartupCheckBox.IsChecked = true;
+                    SetStartupEnabled(true);
+                }
+            }
+            else
+            {
+                SetSpoofAtStartupEnabled(false);
+            }
+
+            if (!updateStatus)
+                return;
+
+            StatusTextBlock.Text = mode switch
+            {
+                SpoofMode.Once => "Once mode selected. RUN SPOOF changes the selected adapter one time.",
+                SpoofMode.Restart => "Every Restart enabled. MacSpoof will launch with Windows and apply one spoof on startup.",
+                SpoofMode.Rotate => "Rotate mode selected. MAC changes every 15 minutes until stopped.",
+                SpoofMode.Custom => "Custom rotation selected. Choose an interval, then run the rotation.",
+                _ => "Ready."
+            };
+        }
+
+        private void StyleModeButton(Microsoft.UI.Xaml.Controls.Button button, bool selected)
+        {
+            button.Background = selected ? _selectedTileBrush : _tileBrush;
+            button.BorderBrush = selected ? _selectedTileBorderBrush : _tileBorderBrush;
+            button.BorderThickness = selected ? new Thickness(1.5) : new Thickness(1);
+        }
+
+        private void RestorePrimaryActionBrush()
+        {
+            if (Content is FrameworkElement root && root.Resources["PrimaryActionBrush"] is Brush brush)
+                ActionButton.Background = brush;
+        }
+
+        private void SetReadyState(string title, string subtitle, Brush dotBrush)
+        {
+            ReadyStatusTextBlock.Text = title;
+            ReadySubTextBlock.Text = subtitle;
+            ReadyDotEllipse.Fill = dotBrush;
+        }
+
+        private void UpdateAdapterInformation()
+        {
+            if (AdapterComboBox.SelectedItem is not NetworkInterface nic)
+            {
+                AdapterNameTextBlock.Text = "—";
+                AdapterDescriptionTextBlock.Text = "—";
+                AdapterStatusTextBlock.Text = "Unavailable";
+                AdapterStatusDot.Fill = _mutedBrush;
+                AdapterSpeedTextBlock.Text = "—";
+                AdapterDriverTextBlock.Text = "Windows managed";
+                CurrentAdapterDescriptionTextBlock.Text = "Network adapter";
+                return;
+            }
+
+            AdapterNameTextBlock.Text = nic.Name;
+            AdapterDescriptionTextBlock.Text = nic.Description;
+            CurrentAdapterDescriptionTextBlock.Text = nic.Description;
+
+            bool connected = nic.OperationalStatus == OperationalStatus.Up;
+            AdapterStatusTextBlock.Text = connected ? "Connected" : nic.OperationalStatus.ToString();
+            AdapterStatusDot.Fill = connected ? _readyBrush : _mutedBrush;
+            AdapterSpeedTextBlock.Text = FormatLinkSpeed(nic.Speed);
+            AdapterDriverTextBlock.Text = MacSpoofService.GetAdapterDriverVersion(nic.Id);
+        }
+
+        private static string FormatLinkSpeed(long bitsPerSecond)
+        {
+            if (bitsPerSecond <= 0) return "—";
+            if (bitsPerSecond >= 1_000_000_000)
+                return $"{bitsPerSecond / 1_000_000_000d:0.#} Gbps";
+            if (bitsPerSecond >= 1_000_000)
+                return $"{bitsPerSecond / 1_000_000d:0.#} Mbps";
+            if (bitsPerSecond >= 1_000)
+                return $"{bitsPerSecond / 1_000d:0.#} Kbps";
+            return $"{bitsPerSecond} bps";
+        }
+
+        private void NetworkNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            StatusTextBlock.Text = "Network controls are active.";
+        }
+
+        private void SettingsNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            StatusTextBlock.Text = "Settings are available directly in the configuration and startup controls on this screen.";
+        }
+
+        private void AboutNavButton_Click(object sender, RoutedEventArgs e)
+        {
+            StatusTextBlock.Text = "MacSpoof v1.3.0 · Native WinUI 3 network identity utility.";
+        }
+
+        private void HelpButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo("https://github.com/Yuezhiui/KernelMacSpoofer")
+                {
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                StatusTextBlock.Text = "Could not open help: " + ex.Message;
             }
         }
+
+        private void StartupCheckBox_Click(object sender, RoutedEventArgs e)
+        {
+            bool enabled = StartupCheckBox.IsChecked == true;
+            try
+            {
+                SetStartupEnabled(enabled);
+                if (!enabled && _selectedMode == SpoofMode.Restart)
+                {
+                    SetSpoofAtStartupEnabled(false);
+                    SelectMode(SpoofMode.Once, updateStatus: false);
+                }
+
+                StatusTextBlock.Text = enabled
+                    ? "MacSpoof will open automatically when you sign in to Windows."
+                    : "Automatic startup disabled.";
+            }
+            catch (Exception ex)
+            {
+                StartupCheckBox.IsChecked = IsStartupEnabled();
+                StatusTextBlock.Text = "Could not update startup setting: " + ex.Message;
+            }
+        }
+
+        private static bool IsStartupEnabled()
+        {
+            try
+            {
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(StartupRunKey);
+                return key?.GetValue(StartupValueName) is string value && !string.IsNullOrWhiteSpace(value);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void SetStartupEnabled(bool enabled)
+        {
+            using RegistryKey key = Registry.CurrentUser.CreateSubKey(StartupRunKey);
+            if (!enabled)
+            {
+                key.DeleteValue(StartupValueName, false);
+                return;
+            }
+
+            string executable = Environment.ProcessPath
+                ?? throw new InvalidOperationException("MacSpoof executable path is unavailable.");
+            key.SetValue(StartupValueName, $"\"{executable}\" --startup", RegistryValueKind.String);
+        }
+
+        private static bool IsSpoofAtStartupEnabled()
+        {
+            try
+            {
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(SettingsKey);
+                return Convert.ToInt32(key?.GetValue(SpoofAtStartupValueName, 0)) == 1;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void SetSpoofAtStartupEnabled(bool enabled)
+        {
+            using RegistryKey key = Registry.CurrentUser.CreateSubKey(SettingsKey);
+            key.SetValue(SpoofAtStartupValueName, enabled ? 1 : 0, RegistryValueKind.DWord);
+        }
+
+        private static bool IsStartupLaunch() =>
+            Environment.GetCommandLineArgs().Any(arg => arg.Equals("--startup", StringComparison.OrdinalIgnoreCase));
 
         internal void OnWindowHidden()
         {
@@ -381,6 +629,7 @@ namespace MacSpoof
             if (!_operationInProgress)
                 RefreshAdapters(preserveSelection: true);
 
+            MainScrollViewer.ChangeView(null, 0, null, true);
             _pollTimer.Start();
         }
 
@@ -425,7 +674,6 @@ namespace MacSpoof
             _cooldownTimer.Stop();
             _cooldownSecondsLeft = 0;
             ActionButtonText.Text = "FINISHING...";
-            ActionButtonIcon.Glyph = "\uE895";
             StatusTextBlock.Text = "Finishing the current network operation, then MacSpoof will exit automatically.";
             _trayManager?.UpdateTooltip("MacSpoof: finishing operation before exit");
             UpdateControlAvailability();
