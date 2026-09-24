@@ -70,54 +70,36 @@ jobs:
 
           "MACSPOOF_SIGNING_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "MACSPOOF_SIGNING_STATUS=Authenticode signed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Build installer and portable ZIP
+      - name: Build portable ZIP
         shell: pwsh
         run: |
-          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $compiler)) { throw 'Inno Setup 6 is missing from the runner' }
-          & $compiler "/DAppVersion=$env:MACSPOOF_VERSION" installer.iss
-          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+
+          @(
+            '# Third-Party Notices'
+            ''
+            '## Google Material Symbols'
+            ''
+            'The SVG icon assets under `MacSpoof/MacSpoof/Assets/material-*.svg` are derived from Google Material Symbols obtained from Google Fonts.'
+            ''
+            '- Source: https://fonts.google.com/icons'
+            '- Documentation: https://developers.google.com/fonts/docs/material_symbols'
+            '- License: Apache License 2.0'
+            ''
+            'The Material Symbols artwork remains subject to its original Apache 2.0 license.'
+            "MacSpoof's own source code remains licensed under the repository's MIT License."
+          ) | Set-Content artifacts/THIRD_PARTY_NOTICES.md -Encoding utf8
+
           $portableDir = Join-Path $env:RUNNER_TEMP "MacSpoof-portable-$env:GITHUB_RUN_ID"
           New-Item -ItemType Directory -Path $portableDir -Force | Out-Null
           Copy-Item 'MacSpoof_Fixed/*' -Destination $portableDir -Recurse
-          Copy-Item 'Run_MacSpoof.bat', 'LICENSE', 'THIRD_PARTY_NOTICES.md' -Destination $portableDir
+          Copy-Item 'LICENSE', 'artifacts/THIRD_PARTY_NOTICES.md' -Destination $portableDir
           Compress-Archive -Path "$portableDir/*" -DestinationPath "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip" -Force
-      - name: Sign installer if configured
-        shell: pwsh
-        env:
-          WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
-          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
-        run: |
-          if ($env:MACSPOOF_SIGNING_ENABLED -ne 'true') {
-            Write-Warning 'Installer remains unsigned because Authenticode signing secrets are not configured.'
-            exit 0
-          }
-
-          $installer = "artifacts/MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64.exe"
-          if (-not (Test-Path -LiteralPath $installer)) { throw "Installer not found: $installer" }
-          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
-            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
-            Select-Object -First 1
-          if (-not $signtool) { throw 'signtool.exe was not found on the Windows runner' }
-
-          $pfxPath = Join-Path $env:RUNNER_TEMP 'macspoof-signing.pfx'
-          try {
-            $pfxBytes = [Convert]::FromBase64String(($env:WINDOWS_SIGNING_PFX_BASE64 -replace '\s', ''))
-            [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
-            & $signtool.FullName sign /fd SHA256 /f $pfxPath /p $env:WINDOWS_SIGNING_PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $installer
-            if ($LASTEXITCODE -ne 0) { throw 'Signing the installer failed' }
-            & $signtool.FullName verify /pa $installer
-            if ($LASTEXITCODE -ne 0) { throw 'Authenticode verification failed for the installer' }
-          }
-          finally {
-            Remove-Item -LiteralPath $pfxPath -Force -ErrorAction SilentlyContinue
-          }
       - name: Generate checksums and signing report
         shell: pwsh
         run: |
           $releaseFiles = @(
-            "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip",
-            "artifacts/MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64.exe"
+            "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip"
           )
           foreach ($file in $releaseFiles) {
             if (-not (Test-Path -LiteralPath $file)) { throw "Release artifact not found: $file" }
@@ -129,7 +111,7 @@ jobs:
 
           if ($env:MACSPOOF_SIGNING_ENABLED -eq 'true') {
             $status = 'Authenticode signed'
-            $detail = 'MacSpoof.exe and the Windows installer were Authenticode signed before checksums were generated.'
+            $detail = 'MacSpoof.exe was Authenticode signed before the portable ZIP and checksums were generated.'
           } else {
             $status = 'Unsigned'
             $detail = 'Signing secrets were not configured, so this release was built without Authenticode signatures.'
@@ -155,16 +137,16 @@ jobs:
           name: MacSpoof-windows-x64
           path: |
             artifacts/MacSpoof-v*-Portable-x64.zip
-            artifacts/MacSpoof-Setup-v*-x64.exe
             artifacts/SHA256SUMS.txt
+            artifacts/THIRD_PARTY_NOTICES.md
       - name: Create GitHub release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             artifacts/MacSpoof-v*-Portable-x64.zip
-            artifacts/MacSpoof-Setup-v*-x64.exe
             artifacts/SHA256SUMS.txt
+            artifacts/THIRD_PARTY_NOTICES.md
           body_path: release-signing-note.md
           draft: false
           prerelease: false

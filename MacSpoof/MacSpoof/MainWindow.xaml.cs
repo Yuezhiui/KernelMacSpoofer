@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading.Tasks;
@@ -108,6 +109,10 @@ namespace MacSpoof
             }
 
             appWindow.Resize(new Windows.Graphics.SizeInt32(440, 720));
+
+            string iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "MacIcon.ico");
+            if (File.Exists(iconPath))
+                appWindow.SetIcon(iconPath);
 
             var light = Windows.UI.Color.FromArgb(255, 249, 248, 244);
             var ink = Windows.UI.Color.FromArgb(255, 17, 17, 17);

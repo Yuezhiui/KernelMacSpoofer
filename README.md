@@ -88,7 +88,7 @@ See [LICENSE](LICENSE) for full text.
 
 ### UI icon attribution
 
-The refreshed interface uses SVG icon assets derived from [Google Material Symbols](https://fonts.google.com/icons). Material Symbols are provided by Google under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Those third-party icon assets retain their Apache 2.0 license; MacSpoof's own source code remains licensed under MIT by Zhi. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the bundled third-party notice.
+The refreshed interface uses SVG icon assets derived from [Google Material Symbols](https://fonts.google.com/icons). Material Symbols are provided by Google under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Those third-party icon assets retain their Apache 2.0 license; MacSpoof's own source code remains licensed under MIT by Zhi. Release packaging writes the third-party notice under `artifacts/` and includes it with the portable release.
 
 
 ## Connection reliability and cache cleanup
@@ -105,20 +105,19 @@ Command references: [Microsoft ipconfig documentation](https://learn.microsoft.c
 Non-disruptive checks: `dotnet run --project tests/MacSpoof.Checks`. These cover generated addresses, validation, formatting, rollback expectations, usable-IP state, safe command argument construction, partial cache-warning behavior, and missing adapters. They do not perform live registry writes or adapter restarts; hardware testing is still required.
 
 
-## Windows installer and portable release (v1.4.0)
+## Portable Windows release (v1.4.0)
 
-Download `MacSpoof-Setup-v1.4.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use the portable `MacSpoof-v1.4.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
+Download `MacSpoof-v1.4.0-Portable-x64.zip` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest). Release artifacts follow the pattern `MacSpoof-vX-Portable-x64.zip`.
 
-The installer contains the self-contained Windows x64 app; an optional desktop shortcut and Windows uninstall entry are included. No network settings are changed by installation or uninstallation. Use Restore default MAC inside the app before uninstalling if you want to remove an applied override. This is a Windows application, not a macOS application.
+The portable package contains the self-contained Windows x64 app. Extract it and run `MacSpoof.exe` directly. This is a Windows application, not a macOS application.
 
-To build from the repository root with .NET 8 and Inno Setup 6:
+To build from the repository root with .NET 8:
 
 ```powershell
 dotnet publish MacSpoof/MacSpoof/MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64 -o MacSpoof_Fixed
-iscc installer.iss
 ```
 
-The installer is generated under `artifacts/`. The portable ZIP includes `Run_MacSpoof.bat`, `LICENSE`, and `THIRD_PARTY_NOTICES.md`; the launcher also works from the repository root after publishing to `MacSpoof_Fixed`. Every release includes `SHA256SUMS.txt` for the installer and portable ZIP. Build and non-disruptive checks passed; adapter-specific Wi-Fi reconnection and rollback still require live hardware testing.
+The release workflow packages the published app as a portable ZIP under `artifacts/`. The package includes `LICENSE` and the generated third-party notice. Every release includes `SHA256SUMS.txt`. Build and non-disruptive checks passed; adapter-specific Wi-Fi reconnection and rollback still require live hardware testing.
 
 ### Release signing
 
@@ -127,4 +126,4 @@ The GitHub Actions release workflow supports optional Authenticode signing with 
 - `WINDOWS_SIGNING_PFX_BASE64` — the Base64-encoded contents of the code-signing `.pfx` file.
 - `WINDOWS_SIGNING_PFX_PASSWORD` — the password for that `.pfx` file.
 
-When both secrets are configured, the workflow signs `MacSpoof.exe` before creating the installer and portable ZIP, signs the generated installer, and only then writes `SHA256SUMS.txt` and publishes the release. When both secrets are absent, the release still builds and the workflow/release notes clearly report that the artifacts are unsigned. A partial signing configuration fails the workflow instead of silently producing an unexpected unsigned release.
+When both secrets are configured, the workflow signs `MacSpoof.exe` before creating the portable ZIP and then writes `SHA256SUMS.txt` before publishing the release. When both secrets are absent, the release still builds and the workflow/release notes clearly report that the artifacts are unsigned. A partial signing configuration fails the workflow instead of silently producing an unexpected unsigned release.
