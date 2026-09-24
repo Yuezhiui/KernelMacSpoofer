@@ -1,6 +1,7 @@
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
-using Microsoft.UI.Xaml;
+using System.Threading.Tasks;
 using WinRT.Interop;
 
 namespace MacSpoof
@@ -8,7 +9,7 @@ namespace MacSpoof
     /// <summary>
     /// Pure C# Win32 System Tray (Notification Area) Manager with interactive context menus.
     /// </summary>
-    public class TrayIconManager : IDisposable
+    public sealed class TrayIconManager : IDisposable
     {
         private const int WM_USER = 0x0400;
         public const int WM_TRAYICON = WM_USER + 101;
@@ -32,8 +33,11 @@ namespace MacSpoof
         private const uint MF_GRAYED = 0x00000001;
 
         private const int SW_HIDE = 0;
-        private const int SW_SHOW = 5;
         private const int SW_RESTORE = 9;
+
+        private const int CMD_SPOOF_ONCE = 1001;
+        private const int CMD_SHOW_HIDE = 1002;
+        private const int CMD_EXIT = 1003;
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         private struct NOTIFYICONDATA
@@ -79,8 +83,8 @@ namespace MacSpoof
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll", EntryPoint = "ShowWindow")]
+        private static extern bool ShowWindowNative(IntPtr hWnd, int nCmdShow);
 
         [DllImport("user32.dll")]
         private static extern bool IsWindowVisible(IntPtr hWnd);
@@ -112,32 +116,41 @@ namespace MacSpoof
         private readonly IntPtr _hWnd;
         private readonly MainWindow _mainWindow;
         private readonly SubclassProc _subclassProc;
-        private bool _isAdded = false;
-
-        private const int CMD_SPOOF_ONCE = 1001;
-        private const int CMD_SHOW_HIDE = 1002;
-        private const int CMD_EXIT = 1003;
+        private bool _isAdded;
+        private bool _subclassInstalled;
+        private bool _disposed;
+        private string? _lastTooltip;
 
         public TrayIconManager(MainWindow mainWindow)
         {
             _mainWindow = mainWindow;
             _hWnd = WindowNative.GetWindowHandle(_mainWindow);
+            _subclassProc = WndProc;
 
-            _subclassProc = new SubclassProc(WndProc);
-            SetWindowSubclass(_hWnd, _subclassProc, (UIntPtr)1, IntPtr.Zero);
+            try
+            {
+                if (!SetWindowSubclass(_hWnd, _subclassProc, (UIntPtr)1, IntPtr.Zero))
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not install the tray window message handler.");
 
-            AddTrayIcon();
+                _subclassInstalled = true;
+                AddTrayIcon();
+            }
+            catch
+            {
+                Dispose();
+                throw;
+            }
         }
 
         public void AddTrayIcon()
         {
-            if (_isAdded) return;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_isAdded)
+                return;
 
             IntPtr hIcon = SendMessage(_hWnd, 0x007F /* WM_GETICON */, (IntPtr)1 /* ICON_BIG */, IntPtr.Zero);
             if (hIcon == IntPtr.Zero)
-            {
                 hIcon = LoadIcon(IntPtr.Zero, (IntPtr)32512 /* IDI_APPLICATION */);
-            }
 
             var nid = new NOTIFYICONDATA
             {
@@ -150,58 +163,71 @@ namespace MacSpoof
                 szTip = "MacSpoof"
             };
 
-            _isAdded = Shell_NotifyIcon(NIM_ADD, ref nid);
+            if (!Shell_NotifyIcon(NIM_ADD, ref nid))
+                throw new InvalidOperationException("Could not create the system tray icon.");
+
+            _isAdded = true;
+            _lastTooltip = "MacSpoof";
         }
 
         public void UpdateTooltip(string tip)
         {
-            if (!_isAdded) return;
+            if (!_isAdded || _disposed)
+                return;
+
+            string normalizedTip = tip.Length > 127 ? tip[..127] : tip;
+            if (string.Equals(normalizedTip, _lastTooltip, StringComparison.Ordinal))
+                return;
+
             var nid = new NOTIFYICONDATA
             {
                 cbSize = Marshal.SizeOf<NOTIFYICONDATA>(),
                 hWnd = _hWnd,
                 uID = 1001,
                 uFlags = NIF_TIP,
-                szTip = tip.Length > 127 ? tip.Substring(0, 127) : tip
+                szTip = normalizedTip
             };
-            Shell_NotifyIcon(NIM_MODIFY, ref nid);
+
+            if (Shell_NotifyIcon(NIM_MODIFY, ref nid))
+                _lastTooltip = normalizedTip;
         }
 
         public void RemoveTrayIcon()
         {
-            if (!_isAdded) return;
+            if (!_isAdded)
+                return;
+
             var nid = new NOTIFYICONDATA
             {
                 cbSize = Marshal.SizeOf<NOTIFYICONDATA>(),
                 hWnd = _hWnd,
                 uID = 1001
             };
+
             Shell_NotifyIcon(NIM_DELETE, ref nid);
             _isAdded = false;
+            _lastTooltip = null;
         }
 
         public void ToggleWindow()
         {
             if (IsWindowVisible(_hWnd))
-            {
-                ShowWindow(_hWnd, SW_HIDE);
-            }
+                HideWindow();
             else
-            {
-                ShowWindow(_hWnd, SW_RESTORE);
-                SetForegroundWindow(_hWnd);
-            }
+                ShowWindow();
         }
 
         public void ShowWindow()
         {
-            ShowWindow(_hWnd, SW_RESTORE);
+            ShowWindowNative(_hWnd, SW_RESTORE);
             SetForegroundWindow(_hWnd);
+            _mainWindow.OnWindowShown();
         }
 
         public void HideWindow()
         {
-            ShowWindow(_hWnd, SW_HIDE);
+            ShowWindowNative(_hWnd, SW_HIDE);
+            _mainWindow.OnWindowHidden();
         }
 
         private IntPtr WndProc(IntPtr hWnd, uint uMsg, IntPtr wParam, IntPtr lParam, UIntPtr uIdSubclass, IntPtr dwRefData)
@@ -215,7 +241,7 @@ namespace MacSpoof
                 }
                 else if (mouseMsg == WM_RBUTTONUP)
                 {
-                    _mainWindow.DispatcherQueue.TryEnqueue(ShowContextMenu);
+                    _mainWindow.DispatcherQueue.TryEnqueue(() => _ = ShowContextMenuSafelyAsync());
                 }
                 return IntPtr.Zero;
             }
@@ -229,29 +255,49 @@ namespace MacSpoof
             return DefSubclassProc(hWnd, uMsg, wParam, lParam);
         }
 
-        private void ShowContextMenu()
+        private async Task ShowContextMenuSafelyAsync()
+        {
+            try
+            {
+                await ShowContextMenuAsync();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Tray menu action failed: {ex.Message}");
+            }
+        }
+
+        private async Task ShowContextMenuAsync()
         {
             IntPtr hMenu = CreatePopupMenu();
-            if (hMenu == IntPtr.Zero) return;
+            if (hMenu == IntPtr.Zero)
+                return;
 
-            string currentMac = _mainWindow.CurrentMacAddress;
-            AppendMenu(hMenu, MF_STRING | MF_GRAYED, 0, $"MacSpoof ({currentMac})");
-            AppendMenu(hMenu, MF_SEPARATOR, 0, null);
-            AppendMenu(hMenu, MF_STRING, CMD_SPOOF_ONCE, "Spoof MAC (Once)");
-            AppendMenu(hMenu, MF_SEPARATOR, 0, null);
-            
-            bool visible = IsWindowVisible(_hWnd);
-            AppendMenu(hMenu, MF_STRING, CMD_SHOW_HIDE, visible ? "Hide Window" : "Open MacSpoof");
-            AppendMenu(hMenu, MF_STRING, CMD_EXIT, "Exit");
+            uint cmd;
+            try
+            {
+                string currentMac = _mainWindow.CurrentMacAddress;
+                AppendMenu(hMenu, MF_STRING | MF_GRAYED, 0, $"MacSpoof ({currentMac})");
+                AppendMenu(hMenu, MF_SEPARATOR, 0, null);
+                AppendMenu(hMenu, MF_STRING, CMD_SPOOF_ONCE, "Spoof MAC (Once)");
+                AppendMenu(hMenu, MF_SEPARATOR, 0, null);
 
-            GetCursorPos(out POINT pt);
-            SetForegroundWindow(_hWnd);
-            uint cmd = TrackPopupMenuEx(hMenu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.X, pt.Y, _hWnd, IntPtr.Zero);
-            DestroyMenu(hMenu);
+                bool visible = IsWindowVisible(_hWnd);
+                AppendMenu(hMenu, MF_STRING, CMD_SHOW_HIDE, visible ? "Hide Window" : "Open MacSpoof");
+                AppendMenu(hMenu, MF_STRING, CMD_EXIT, _mainWindow.IsNetworkOperationRunning ? "Exit after current operation" : "Exit");
+
+                GetCursorPos(out POINT pt);
+                SetForegroundWindow(_hWnd);
+                cmd = TrackPopupMenuEx(hMenu, TPM_RIGHTBUTTON | TPM_RETURNCMD, pt.X, pt.Y, _hWnd, IntPtr.Zero);
+            }
+            finally
+            {
+                DestroyMenu(hMenu);
+            }
 
             if (cmd == CMD_SPOOF_ONCE)
             {
-                _mainWindow.TriggerSpoofOnceFromTray();
+                await _mainWindow.TriggerSpoofOnceFromTrayAsync();
             }
             else if (cmd == CMD_SHOW_HIDE)
             {
@@ -259,16 +305,24 @@ namespace MacSpoof
             }
             else if (cmd == CMD_EXIT)
             {
-                if (_mainWindow.IsNetworkOperationRunning) return;
-                Dispose();
-                Environment.Exit(0);
+                _mainWindow.RequestExit();
             }
         }
 
         public void Dispose()
         {
+            if (_disposed)
+                return;
+
             RemoveTrayIcon();
-            RemoveWindowSubclass(_hWnd, _subclassProc, (UIntPtr)1);
+            if (_subclassInstalled)
+            {
+                if (!RemoveWindowSubclass(_hWnd, _subclassProc, (UIntPtr)1))
+                    System.Diagnostics.Debug.WriteLine("Could not remove the tray window message handler cleanly.");
+                _subclassInstalled = false;
+            }
+
+            _disposed = true;
         }
     }
 }

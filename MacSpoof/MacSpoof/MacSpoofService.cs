@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Threading;
@@ -14,6 +16,7 @@ namespace MacSpoof
     public static class MacSpoofService
     {
         private const string NetworkClassRegistryKey = @"SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}";
+        private const string OperationMutexName = @"Local\MacSpoof.NetworkOperation";
         private static readonly SemaphoreSlim OperationLock = new(1, 1);
 
         public static string GenerateRandomMacAddress()
@@ -44,6 +47,40 @@ namespace MacSpoof
         private static NetworkInterface? FindAdapter(string id) => GetAdapters().FirstOrDefault(n => n.Id == id);
         public static string GetCurrentMacAddress(string id) => FormatMacAddress(FindAdapter(id)?.GetPhysicalAddress().ToString() ?? "");
 
+        internal static string? GetRollbackExpectedMac(object? registryValue)
+        {
+            if (registryValue is not string value) return null;
+            string clean = value.Replace(":", "").Replace("-", "").Trim().ToUpperInvariant();
+            if (clean.Length != 12 || !clean.All(Uri.IsHexDigit) || clean == "000000000000") return null;
+            return (Convert.ToByte(clean[..2], 16) & 1) == 0 ? clean : null;
+        }
+
+        internal static bool IsUsableIpAddress(IPAddress address) =>
+            !IPAddress.IsLoopback(address) &&
+            !address.IsIPv6LinkLocal &&
+            !address.Equals(IPAddress.Any) &&
+            !address.Equals(IPAddress.IPv6Any) &&
+            !(address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+              address.GetAddressBytes() is var bytes && bytes[0] == 169 && bytes[1] == 254);
+
+        internal static bool HasUsableIpAddress(OperationalStatus status, IEnumerable<IPAddress> addresses) =>
+            status == OperationalStatus.Up && addresses.Any(IsUsableIpAddress);
+
+        private static bool HasUsableIpAddress(NetworkInterface nic) =>
+            HasUsableIpAddress(nic.OperationalStatus, nic.GetIPProperties().UnicastAddresses.Select(a => a.Address));
+
+        internal static string[] BuildInterfaceAdminArguments(string name, bool enabled) =>
+            new[] { "interface", "set", "interface", "name=" + name, enabled ? "admin=enabled" : "admin=disabled" };
+
+        internal static NetworkResult BuildSuccessfulChangeResult(bool restore, bool cacheRefreshRequested, string? cacheError = null)
+        {
+            string message = restore ? "MAC override removed; adapter restarted successfully." : "MAC change verified.";
+            if (!cacheRefreshRequested) return new(true, message);
+            return cacheError == null
+                ? new(true, message + " Network caches refreshed.")
+                : new(true, message + " Warning: cache refresh incomplete: " + cacheError);
+        }
+
         private static RegistryKey OpenAdapterKey(string id)
         {
             using var root = Registry.LocalMachine.OpenSubKey(NetworkClassRegistryKey)
@@ -59,23 +96,47 @@ namespace MacSpoof
             throw new InvalidOperationException("No registry entry matches the selected adapter.");
         }
 
-        public static async Task<NetworkResult> ChangeMacAsync(string id, bool restore, bool clearCache, string? newMac = null)
+        private static async Task<NetworkResult> RunExclusiveAsync(Func<Task<NetworkResult>> operation)
         {
             if (!await OperationLock.WaitAsync(0)) return new(false, "Another network operation is still running.");
             try
             {
+                // Mutex ownership is thread-affine, so one worker thread owns it for the whole async operation.
+                return await Task.Run(() =>
+                {
+                    using var mutex = new Mutex(false, OperationMutexName);
+                    bool acquired;
+                    try { acquired = mutex.WaitOne(0); }
+                    catch (AbandonedMutexException) { acquired = true; }
+                    if (!acquired) return new NetworkResult(false, "Another MacSpoof process is changing network settings.");
+
+                    try { return operation().GetAwaiter().GetResult(); }
+                    finally { mutex.ReleaseMutex(); }
+                });
+            }
+            finally { OperationLock.Release(); }
+        }
+
+        public static Task<NetworkResult> ChangeMacAsync(string id, bool restore, bool clearCache, string? newMac = null) =>
+            RunExclusiveAsync(() => ChangeMacCoreAsync(id, restore, clearCache, newMac));
+
+        private static async Task<NetworkResult> ChangeMacCoreAsync(string id, bool restore, bool clearCache, string? newMac)
+        {
+            try
+            {
                 var nic = FindAdapter(id) ?? throw new InvalidOperationException("Selected adapter is unavailable.");
                 string? target = restore ? null : NormalizeMacAddress(newMac ?? GenerateRandomMacAddress());
-                bool wasConnected = nic.OperationalStatus == OperationalStatus.Up;
+                bool hadUsableIp = HasUsableIpAddress(nic);
                 using var key = OpenAdapterKey(id);
                 object? previous = key.GetValue("NetworkAddress");
                 var previousKind = previous == null ? RegistryValueKind.String : key.GetValueKind("NetworkAddress");
+                string? rollbackExpectedMac = GetRollbackExpectedMac(previous);
                 try
                 {
                     if (restore) key.DeleteValue("NetworkAddress", false);
                     else key.SetValue("NetworkAddress", target!, RegistryValueKind.String);
-                    await RestartAdapterAsync(nic.Name);
-                    if (!await WaitForAdapterAsync(id, target, wasConnected))
+                    await RestartAdapterAsync(id);
+                    if (!await WaitForAdapterAsync(id, target, hadUsableIp))
                         throw new InvalidOperationException("The driver did not apply the MAC or the adapter did not reconnect within 45 seconds.");
                 }
                 catch (Exception changeError)
@@ -84,26 +145,32 @@ namespace MacSpoof
                     {
                         if (previous == null) key.DeleteValue("NetworkAddress", false);
                         else key.SetValue("NetworkAddress", previous, previousKind);
-                        await RestartAdapterAsync(nic.Name);
-                        bool recovered = await WaitForAdapterAsync(id, null, wasConnected);
-                        return new(false, $"{changeError.Message} Previous setting restored. " +
-                            (recovered ? "Adapter recovered." : "Reconnect in Windows Wi-Fi settings; recovery could not be verified."));
+                        await RestartAdapterAsync(id);
+                        bool recovered = await WaitForAdapterAsync(id, rollbackExpectedMac, hadUsableIp);
+                        string recoveryMessage = recovered
+                            ? rollbackExpectedMac == null
+                                ? "Previous setting restored. Adapter recovered."
+                                : "Previous MAC restored and verified."
+                            : "Previous registry setting was written back, but adapter recovery could not be verified.";
+                        return new(false, $"{changeError.Message} {recoveryMessage}");
                     }
                     catch (Exception recoveryError)
                     {
                         return new(false, $"{changeError.Message} Recovery failed: {recoveryError.Message} Enable the adapter in Windows network settings.");
                     }
                 }
-                string message = restore ? "MAC override removed; driver default restored." : "MAC change verified.";
                 if (clearCache)
                 {
-                    try { await ClearCachesCoreAsync(nic); message += " Network caches refreshed."; }
-                    catch (Exception ex) { return new(false, message + " Cache refresh failed: " + ex.Message); }
+                    try
+                    {
+                        await ClearCachesCoreAsync(FindAdapter(id) ?? nic);
+                        return BuildSuccessfulChangeResult(restore, true);
+                    }
+                    catch (Exception ex) { return BuildSuccessfulChangeResult(restore, true, ex.Message); }
                 }
-                return new(true, message);
+                return BuildSuccessfulChangeResult(restore, false);
             }
             catch (Exception ex) { return new(false, ex.Message); }
-            finally { OperationLock.Release(); }
         }
 
         private static async Task<bool> WaitForAdapterAsync(string id, string? target, bool requireConnection)
@@ -114,34 +181,52 @@ namespace MacSpoof
                 var nic = FindAdapter(id);
                 if (nic != null && nic.GetPhysicalAddress().GetAddressBytes().Length == 6 &&
                     (target == null || nic.GetPhysicalAddress().ToString().Equals(target, StringComparison.OrdinalIgnoreCase)) &&
-                    (!requireConnection || (nic.OperationalStatus == OperationalStatus.Up &&
-                        nic.GetIPProperties().UnicastAddresses.Any(a =>
-                            !System.Net.IPAddress.IsLoopback(a.Address) &&
-                            !a.Address.IsIPv6LinkLocal && !a.Address.ToString().StartsWith("169.254.") &&
-                            !a.Address.Equals(System.Net.IPAddress.Any))))) return true;
+                    (!requireConnection || HasUsableIpAddress(nic))) return true;
                 await Task.Delay(1000);
             }
             return false;
         }
 
-        private static async Task RestartAdapterAsync(string name)
+        private static async Task<string> SetAdapterAdminStateAsync(string id, bool enabled, string? fallbackName = null)
         {
-            // Always try to enable, even if disabling fails or times out.
-            try { await RunAsync("netsh.exe", "interface", "set", "interface", "name=" + name, "admin=disabled"); }
-            finally { await RunAsync("netsh.exe", "interface", "set", "interface", "name=" + name, "admin=enabled"); }
-        }
-
-        public static async Task<NetworkResult> ClearCachesAsync(string id)
-        {
-            if (!await OperationLock.WaitAsync(0)) return new(false, "Another network operation is still running.");
+            string name = FindAdapter(id)?.Name ?? fallbackName ??
+                throw new InvalidOperationException("Selected adapter is unavailable.");
             try
             {
-                await ClearCachesCoreAsync(FindAdapter(id) ?? throw new InvalidOperationException("Selected adapter is unavailable."));
-                return new(true, "DNS and adapter neighbor caches cleared; DHCP renewed when enabled.");
+                await RunAsync("netsh.exe", BuildInterfaceAdminArguments(name, enabled));
+                return name;
             }
-            catch (Exception ex) { return new(false, "Cache refresh incomplete: " + ex.Message); }
-            finally { OperationLock.Release(); }
+            catch
+            {
+                string? currentName = FindAdapter(id)?.Name;
+                if (currentName == null || currentName.Equals(name, StringComparison.Ordinal))
+                    throw;
+                await RunAsync("netsh.exe", BuildInterfaceAdminArguments(currentName, enabled));
+                return currentName;
+            }
         }
+
+        private static async Task RestartAdapterAsync(string id)
+        {
+            string? disabledName = null;
+            try { disabledName = await SetAdapterAdminStateAsync(id, false); }
+            finally
+            {
+                // Resolve the alias again by stable adapter ID; fallback only if a disabled adapter temporarily disappears from enumeration.
+                await SetAdapterAdminStateAsync(id, true, disabledName);
+            }
+        }
+
+        public static Task<NetworkResult> ClearCachesAsync(string id) =>
+            RunExclusiveAsync(async () =>
+            {
+                try
+                {
+                    await ClearCachesCoreAsync(FindAdapter(id) ?? throw new InvalidOperationException("Selected adapter is unavailable."));
+                    return new(true, "DNS and adapter neighbor caches cleared; DHCP renewed when enabled.");
+                }
+                catch (Exception ex) { return new(false, "Cache refresh incomplete: " + ex.Message); }
+            });
 
         private static async Task ClearCachesCoreAsync(NetworkInterface nic)
         {

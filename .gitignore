@@ -16,6 +16,10 @@ MacSpoof_Release/
 scratch/
 scratch_*
 *.tmp
+*.pfx
+*.p12
+*.snk
+TestResults/
 *.exe
 *.zip
 MacSpoof_Fixed/

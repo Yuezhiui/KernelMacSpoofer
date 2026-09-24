@@ -14,37 +14,158 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: 8.0.x
-      - name: Validate MAC handling
-        run: dotnet run --project tests/MacSpoof.Checks
-      - name: Publish standalone app
-        run: dotnet publish MacSpoof/MacSpoof/MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64 -o MacSpoof_Fixed
-      - name: Build installer and portable ZIP
+      - name: Read and validate release version
         shell: pwsh
         run: |
           [xml]$project = Get-Content MacSpoof/MacSpoof/MacSpoof.csproj
           $version = [string]($project.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1)
+          if ([string]::IsNullOrWhiteSpace($version)) { throw 'Project version is missing' }
           if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") { throw 'Tag does not match project version' }
+          "MACSPOOF_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Validate MAC handling
+        run: dotnet run --project tests/MacSpoof.Checks
+      - name: Publish standalone app
+        run: dotnet publish MacSpoof/MacSpoof/MacSpoof.csproj -c Release -p:Platform=x64 -p:PublishProfile=win-x64 -o MacSpoof_Fixed
+      - name: Sign portable executable if configured
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          $hasPfx = -not [string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_PFX_BASE64)
+          $hasPassword = -not [string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_PFX_PASSWORD)
+
+          if (-not $hasPfx -and -not $hasPassword) {
+            "MACSPOOF_SIGNING_ENABLED=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            "MACSPOOF_SIGNING_STATUS=Unsigned - signing secrets are not configured" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Warning 'Authenticode signing secrets are not configured. Release artifacts will be unsigned.'
+            exit 0
+          }
+          if (-not $hasPfx -or -not $hasPassword) {
+            throw 'Authenticode signing is partially configured. Set both WINDOWS_SIGNING_PFX_BASE64 and WINDOWS_SIGNING_PFX_PASSWORD, or remove both.'
+          }
+
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe was not found on the Windows runner' }
+
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'macspoof-signing.pfx'
+          try {
+            $pfxBytes = [Convert]::FromBase64String(($env:WINDOWS_SIGNING_PFX_BASE64 -replace '\s', ''))
+            [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+            & $signtool.FullName sign /fd SHA256 /f $pfxPath /p $env:WINDOWS_SIGNING_PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 MacSpoof_Fixed/MacSpoof.exe
+            if ($LASTEXITCODE -ne 0) { throw 'Signing MacSpoof.exe failed' }
+            & $signtool.FullName verify /pa MacSpoof_Fixed/MacSpoof.exe
+            if ($LASTEXITCODE -ne 0) { throw 'Authenticode verification failed for MacSpoof.exe' }
+          }
+          finally {
+            Remove-Item -LiteralPath $pfxPath -Force -ErrorAction SilentlyContinue
+          }
+
+          "MACSPOOF_SIGNING_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MACSPOOF_SIGNING_STATUS=Authenticode signed" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Build installer and portable ZIP
+        shell: pwsh
+        run: |
           $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $compiler)) { throw 'Inno Setup 6 is missing from the runner' }
-          & $compiler "/DAppVersion=$version" installer.iss
+          & $compiler "/DAppVersion=$env:MACSPOOF_VERSION" installer.iss
           if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
-          Compress-Archive -Path 'MacSpoof_Fixed/*' -DestinationPath "artifacts/KernelMacSpoofer-v$version-Portable-x64.zip"
-          Get-ChildItem artifacts -File | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Set-Content artifacts/SHA256SUMS.txt
+          $portableDir = Join-Path $env:RUNNER_TEMP "MacSpoof-portable-$env:GITHUB_RUN_ID"
+          New-Item -ItemType Directory -Path $portableDir -Force | Out-Null
+          Copy-Item 'MacSpoof_Fixed/*' -Destination $portableDir -Recurse
+          Copy-Item 'Run_MacSpoof.bat', 'LICENSE', 'THIRD_PARTY_NOTICES.md' -Destination $portableDir
+          Compress-Archive -Path "$portableDir/*" -DestinationPath "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip" -Force
+      - name: Sign installer if configured
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PFX_BASE64: ${{ secrets.WINDOWS_SIGNING_PFX_BASE64 }}
+          WINDOWS_SIGNING_PFX_PASSWORD: ${{ secrets.WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          if ($env:MACSPOOF_SIGNING_ENABLED -ne 'true') {
+            Write-Warning 'Installer remains unsigned because Authenticode signing secrets are not configured.'
+            exit 0
+          }
+
+          $installer = "artifacts/MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64.exe"
+          if (-not (Test-Path -LiteralPath $installer)) { throw "Installer not found: $installer" }
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
+            Select-Object -First 1
+          if (-not $signtool) { throw 'signtool.exe was not found on the Windows runner' }
+
+          $pfxPath = Join-Path $env:RUNNER_TEMP 'macspoof-signing.pfx'
+          try {
+            $pfxBytes = [Convert]::FromBase64String(($env:WINDOWS_SIGNING_PFX_BASE64 -replace '\s', ''))
+            [IO.File]::WriteAllBytes($pfxPath, $pfxBytes)
+            & $signtool.FullName sign /fd SHA256 /f $pfxPath /p $env:WINDOWS_SIGNING_PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 $installer
+            if ($LASTEXITCODE -ne 0) { throw 'Signing the installer failed' }
+            & $signtool.FullName verify /pa $installer
+            if ($LASTEXITCODE -ne 0) { throw 'Authenticode verification failed for the installer' }
+          }
+          finally {
+            Remove-Item -LiteralPath $pfxPath -Force -ErrorAction SilentlyContinue
+          }
+      - name: Generate checksums and signing report
+        shell: pwsh
+        run: |
+          $releaseFiles = @(
+            "artifacts/MacSpoof-v$env:MACSPOOF_VERSION-Portable-x64.zip",
+            "artifacts/MacSpoof-Setup-v$env:MACSPOOF_VERSION-x64.exe"
+          )
+          foreach ($file in $releaseFiles) {
+            if (-not (Test-Path -LiteralPath $file)) { throw "Release artifact not found: $file" }
+          }
+          $releaseFiles | ForEach-Object {
+            $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
+            "$($hash.Hash.ToLower())  $(Split-Path $hash.Path -Leaf)"
+          } | Set-Content artifacts/SHA256SUMS.txt -Encoding ascii
+
+          if ($env:MACSPOOF_SIGNING_ENABLED -eq 'true') {
+            $status = 'Authenticode signed'
+            $detail = 'MacSpoof.exe and the Windows installer were Authenticode signed before checksums were generated.'
+          } else {
+            $status = 'Unsigned'
+            $detail = 'Signing secrets were not configured, so this release was built without Authenticode signatures.'
+          }
+
+          @(
+            '### MacSpoof release signing'
+            "- Status: **$status**"
+            "- $detail"
+            '- SHA-256 checksums: `SHA256SUMS.txt`'
+          ) | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+          @(
+            '## Build integrity'
+            ''
+            "**Authenticode signing:** $status"
+            ''
+            "$detail Verify downloads with SHA256SUMS.txt included in this release."
+          ) | Set-Content release-signing-note.md -Encoding utf8
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: KernelMacSpoofer-windows-x64
-          path: artifacts/*
+          name: MacSpoof-windows-x64
+          path: |
+            artifacts/MacSpoof-v*-Portable-x64.zip
+            artifacts/MacSpoof-Setup-v*-x64.exe
+            artifacts/SHA256SUMS.txt
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: artifacts/*
+          files: |
+            artifacts/MacSpoof-v*-Portable-x64.zip
+            artifacts/MacSpoof-Setup-v*-x64.exe
+            artifacts/SHA256SUMS.txt
+          body_path: release-signing-note.md
           draft: false
           prerelease: false
           generate_release_notes: true
