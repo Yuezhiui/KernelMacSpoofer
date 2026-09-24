@@ -39,7 +39,7 @@ The application allows instant single-execution spoofing with safety cooldowns a
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/Yuezhiui/MacSpoof.git MacSpoof
+git clone https://github.com/Yuezhiui/KernelMacSpoofer.git MacSpoof
 cd MacSpoof/MacSpoof/MacSpoof
 ```
 
@@ -107,7 +107,7 @@ Non-disruptive checks: `dotnet run --project tests/MacSpoof.Checks`. These cover
 
 ## Windows installer and portable release (v1.2.0)
 
-Download `MacSpoof-Setup-v1.2.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/MacSpoof/releases/latest), or use the portable `MacSpoof-v1.2.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
+Download `MacSpoof-Setup-v1.2.0-x64.exe` from [GitHub Releases](https://github.com/Yuezhiui/KernelMacSpoofer/releases/latest), or use the portable `MacSpoof-v1.2.0-Portable-x64.zip`. Release artifacts follow the patterns `MacSpoof-Setup-vX-x64.exe` and `MacSpoof-vX-Portable-x64.zip`.
 
 The installer contains the self-contained Windows x64 app; an optional desktop shortcut and Windows uninstall entry are included. No network settings are changed by installation or uninstallation. Use Restore default MAC inside the app before uninstalling if you want to remove an applied override. This is a Windows application, not a macOS application.
 
